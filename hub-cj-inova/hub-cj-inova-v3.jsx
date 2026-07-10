@@ -590,7 +590,7 @@ function Paleta({ fechar, setTela, dores, ideias, projetos, prompts }) {
 }
 
 /* ══════════════════ HOME ══════════════════ */
-function TelaHome({ dores, ideias, projetos, prompts, posts, setTela, ideiasDe, perfil }) {
+function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, ideiasDe, perfil }) {
   const semIdeia = dores.filter(d => ideiasDe(d.id).length === 0).length;
   const ideiasVinculadas = ideias.filter(i => i.dorId).length;
   const projetosVinculados = projetos.filter(p => p.dorId).length;
@@ -649,7 +649,7 @@ function TelaHome({ dores, ideias, projetos, prompts, posts, setTela, ideiasDe, 
           <SubTitulo>Atalhos</SubTitulo>
           <div className="stagger" style={{ display: "grid", gap: 8, marginBottom: 22 }}>
             <Atalho icone={Sparkles} label="Copiar um prompt do acervo" onClick={() => setTela("prompts")} n={prompts.length} />
-            <Atalho icone={Bot} label="Abrir um GPT da CJ" onClick={() => setTela("gpts")} n={SEED_GPTS.length} />
+            <Atalho icone={Bot} label="Abrir um GPT da CJ" onClick={() => setTela("gpts")} n={agentes.length} />
             <Atalho icone={FolderOpen} label="Achar um POP ou modelo" onClick={() => setTela("docs")} n={SEED_DOCS.length} />
             <Atalho icone={GraduationCap} label="Assistir um treinamento" onClick={() => setTela("treinamentos")} n={SEED_TREINAMENTOS.length} />
           </div>
