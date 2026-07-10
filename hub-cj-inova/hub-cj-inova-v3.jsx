@@ -68,19 +68,19 @@ const SEED_PROJETOS = [
 const SEED_PROMPTS = [];
 /* Agentes de IA já em uso pela Controladoria Jurídica (fonte: aba "Painel Geral", status "Em Uso"). */
 const SEED_GPTS = [
-  { id: 1, nome: "Atas de Audiência – CJ FIUS", nucleo: "Publicações", objetivo: "Análise completa de atas de audiência trabalhistas", criadoPor: "Isabella", equipe: "Isabella, Aline" },
-  { id: 2, nome: "Sínteses Padronizadas", nucleo: "Publicações", objetivo: "Síntese das publicações", criadoPor: "Isabella", equipe: "Isabella" },
-  { id: 3, nome: "Publicações Trabalhistas – CJ FIUS", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Aline" },
-  { id: 4, nome: "Publicações Penais", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa" },
-  { id: 5, nome: "Publicações Cíveis", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa" },
-  { id: 6, nome: "Publicações RJ e Bancário", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa" },
-  { id: 7, nome: "Publicações Tributárias", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa" },
-  { id: 8, nome: "Núcleo de Cadastros – CJ FIUS", nucleo: "Cadastro", objetivo: "Gestão e controle do núcleo de cadastros", criadoPor: "Jackeline, Isa", equipe: "Isabella" },
-  { id: 9, nome: "Cálculo RO e RR – Depósito Recursal", nucleo: "Apoio", objetivo: "Cálculo automatizado de depósitos recursais RO e RR", criadoPor: "Lilian", equipe: "Lilian e Júlia" },
-  { id: 10, nome: "Conferência de Guia", nucleo: "Apoio", objetivo: "Conferência e validação de guias de pagamento", criadoPor: "Júlia", equipe: "Jackeline, Rebeca, Clara, Bruna" },
-  { id: 11, nome: "Verificação de Compatibilidade Documental", nucleo: "Protocolo", objetivo: "Verificação de compatibilidade entre documentos", criadoPor: "Rebeca", equipe: "Rebeca e Júlia" },
-  { id: 12, nome: "Dashboard Cobrança de Publicações Pendentes do Dia", nucleo: "Publicações", objetivo: "Volumetria diária das publicações pendentes com o Jurídico", criadoPor: "Beatris", equipe: "Beatris" },
-  { id: 13, nome: "Dashboard Report Semanal – Requisições Pendentes", nucleo: "Geral", objetivo: "Volumetria semanal com visão macro das requisições pendentes com as áreas", criadoPor: "Beatris", equipe: "Beatris" },
+  { id: 1, nome: "Atas de Audiência – CJ FIUS", nucleo: "Publicações", objetivo: "Análise completa de atas de audiência trabalhistas", criadoPor: "Isabella", equipe: "Isabella, Aline", link: "" },
+  { id: 2, nome: "Sínteses Padronizadas", nucleo: "Publicações", objetivo: "Síntese das publicações", criadoPor: "Isabella", equipe: "Isabella", link: "" },
+  { id: 3, nome: "Publicações Trabalhistas – CJ FIUS", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Aline", link: "" },
+  { id: 4, nome: "Publicações Penais", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa", link: "" },
+  { id: 5, nome: "Publicações Cíveis", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa", link: "" },
+  { id: 6, nome: "Publicações RJ e Bancário", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa", link: "" },
+  { id: 7, nome: "Publicações Tributárias", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa", link: "" },
+  { id: 8, nome: "Núcleo de Cadastros – CJ FIUS", nucleo: "Cadastro", objetivo: "Gestão e controle do núcleo de cadastros", criadoPor: "Jackeline, Isa", equipe: "Isabella", link: "" },
+  { id: 9, nome: "Cálculo RO e RR – Depósito Recursal", nucleo: "Apoio", objetivo: "Cálculo automatizado de depósitos recursais RO e RR", criadoPor: "Lilian", equipe: "Lilian e Júlia", link: "" },
+  { id: 10, nome: "Conferência de Guia", nucleo: "Apoio", objetivo: "Conferência e validação de guias de pagamento", criadoPor: "Júlia", equipe: "Jackeline, Rebeca, Clara, Bruna", link: "" },
+  { id: 11, nome: "Verificação de Compatibilidade Documental", nucleo: "Protocolo", objetivo: "Verificação de compatibilidade entre documentos", criadoPor: "Rebeca", equipe: "Rebeca e Júlia", link: "" },
+  { id: 12, nome: "Dashboard Cobrança de Publicações Pendentes do Dia", nucleo: "Publicações", objetivo: "Volumetria diária das publicações pendentes com o Jurídico", criadoPor: "Beatris", equipe: "Beatris", link: "" },
+  { id: 13, nome: "Dashboard Report Semanal – Requisições Pendentes", nucleo: "Geral", objetivo: "Volumetria semanal com visão macro das requisições pendentes com as áreas", criadoPor: "Beatris", equipe: "Beatris", link: "" },
 ];
 /* Sem treinamentos publicados ainda. */
 const SEED_TREINAMENTOS = [];
@@ -125,6 +125,7 @@ export default function HubCJInova() {
   const [ideias] = useState(SEED_IDEIAS);
   const [projetos] = useState(SEED_PROJETOS);
   const [prompts] = useState(SEED_PROMPTS);
+  const [agentes, setAgentes] = useState(SEED_GPTS);
   const [posts, setPosts] = useState(SEED_FEED);
   const [favoritos, setFavoritos] = useState([]);
   const [copiado, setCopiado] = useState(null);
@@ -158,8 +159,13 @@ export default function HubCJInova() {
     setPosts(p => [{ id: Date.now(), autor: "Isa", cargo: "Analista Jurídica · CJ INOVA", tempo: "agora", texto, likes: 0, comentarios: 0 }, ...p]);
     notificar("Post publicado na comunidade");
   };
+  const salvarLinkAgente = (id, link) => {
+    setAgentes(a => a.map(g => g.id === id ? { ...g, link } : g));
+    setAgenteSelecionado(g => g && g.id === id ? { ...g, link } : g);
+    notificar("Link do agente atualizado");
+  };
 
-  const props = { dores, ideias, projetos, prompts, posts, publicarPost, favoritos, toggleFav, copiado, copiarPrompt, likes, toggleLike, ideiasDe, projetosDe, setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar };
+  const props = { dores, ideias, projetos, prompts, agentes, posts, publicarPost, favoritos, toggleFav, copiado, copiarPrompt, likes, toggleLike, ideiasDe, projetosDe, setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar };
 
   return (
     <div style={{ fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", background: T.bg, minHeight: "100vh", display: "flex", color: T.chumbo }}>
@@ -184,7 +190,7 @@ export default function HubCJInova() {
 
       {paleta && <Paleta fechar={() => setPaleta(false)} setTela={setTela} dores={dores} ideias={ideias} projetos={projetos} prompts={prompts} />}
       {dorSelecionada && <DrawerDor dor={dorSelecionada} ideias={ideiasDe(dorSelecionada.id)} projetos={projetosDe(dorSelecionada.id)} onClose={() => setDorSelecionada(null)} />}
-      {agenteSelecionado && <DrawerAgente agente={agenteSelecionado} onClose={() => setAgenteSelecionado(null)} />}
+      {agenteSelecionado && <DrawerAgente agente={agenteSelecionado} onSalvarLink={salvarLinkAgente} onClose={() => setAgenteSelecionado(null)} />}
       {modalDor && <ModalNovaDor onSalvar={(nova) => { setDores(d => [...d, nova]); setModalDor(false); notificar(`${nova.id} registrada no radar`); }} onClose={() => setModalDor(false)} proximo={`DOR-0${36 + dores.length - 5}`} />}
       {toast && <Toast msg={toast} />}
     </div>
@@ -972,11 +978,11 @@ function TelaPrompts({ prompts, favoritos, toggleFav, copiado, copiarPrompt }) {
 }
 
 /* ══════════════════ GPTs & SKILLS ══════════════════ */
-function TelaGPTs({ setAgenteSelecionado }) {
+function TelaGPTs({ agentes, setAgenteSelecionado }) {
   const [busca, setBusca] = useState("");
   const [nucleo, setNucleo] = useState("Todos");
-  const nucleos = ["Todos", ...new Set(SEED_GPTS.map(g => g.nucleo))];
-  const lista = SEED_GPTS
+  const nucleos = ["Todos", ...new Set(agentes.map(g => g.nucleo))];
+  const lista = agentes
     .filter(g => nucleo === "Todos" || g.nucleo === nucleo)
     .filter(g => g.nome.toLowerCase().includes(busca.toLowerCase()));
   return (
@@ -1018,7 +1024,10 @@ function TelaGPTs({ setAgenteSelecionado }) {
   );
 }
 
-function DrawerAgente({ agente, onClose }) {
+function DrawerAgente({ agente, onSalvarLink, onClose }) {
+  const [rascunhoLink, setRascunhoLink] = useState(agente.link || "");
+  const linkValido = /^https?:\/\/.+/i.test(rascunhoLink.trim());
+  const salvar = () => { if (linkValido) onSalvarLink(agente.id, rascunhoLink.trim()); };
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.42)", display: "flex", justifyContent: "flex-end", zIndex: 100, animation: "veil .18s ease both" }}>
       <div onClick={e => e.stopPropagation()} style={{ width: "min(460px,100%)", background: T.bg, height: "100%", overflowY: "auto", animation: "slideDrawer .28s cubic-bezier(.2,.7,.3,1) both", boxShadow: "-16px 0 48px rgba(17,29,48,.18)" }}>
@@ -1034,6 +1043,12 @@ function DrawerAgente({ agente, onClose }) {
           </div>
         </div>
         <div style={{ padding: "22px 26px", display: "grid", gap: 16 }}>
+          {agente.link && (
+            <a href={agente.link} target="_blank" rel="noopener noreferrer" className="press lift"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: T.azul, color: "white", borderRadius: 10, padding: "11px 16px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+              Abrir agente <ExternalLink size={14} />
+            </a>
+          )}
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>O que faz</div>
             <div className="card" style={{ padding: 14, fontSize: 13, lineHeight: 1.55 }}>{agente.objetivo}</div>
@@ -1048,9 +1063,22 @@ function DrawerAgente({ agente, onClose }) {
               <div className="card" style={{ padding: 14, fontSize: 13 }}>{agente.equipe}</div>
             </div>
           )}
-          <div className="card" style={{ padding: 15, fontSize: 12, color: T.cinza, display: "flex", gap: 10, lineHeight: 1.55, border: `1px dashed ${T.linha}` }}>
-            <Link2 size={14} color={T.azul} style={{ flexShrink: 0, marginTop: 2 }} />
-            <span>Sem link direto cadastrado ainda para este agente. Assim que houver uma URL real (Espaider, Kurier, iManage etc.), este painel passa a abrir o agente diretamente.</span>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Link de redirecionamento</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={rascunhoLink} onChange={e => setRascunhoLink(e.target.value)}
+                placeholder="https://espaider…, https://kurier…, iManage…"
+                style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface }} />
+              <button onClick={salvar} disabled={!linkValido || rascunhoLink.trim() === (agente.link || "")} className="press"
+                style={{ padding: "10px 16px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700, color: "white", cursor: linkValido ? "pointer" : "not-allowed", background: linkValido && rascunhoLink.trim() !== (agente.link || "") ? T.azul : T.linha }}>
+                Salvar
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: T.cinzaClaro, marginTop: 6 }}>
+              {agente.link
+                ? "Salvo apenas nesta sessão do navegador — quando o login de administradora estiver ativo, este link fica salvo para todo o time."
+                : "Ainda sem link cadastrado. Cole a URL real do agente (Espaider, Kurier, iManage etc.) para habilitar o botão \"Abrir agente\"."}
+            </div>
           </div>
         </div>
       </div>
