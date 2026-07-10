@@ -4,8 +4,9 @@ import {
   FolderOpen, BarChart3, Settings, Search, Plus, Copy, Check, Star,
   Heart, MessageCircle, ChevronRight, X, ArrowRight, Link2,
   FileText, Video, Presentation, ExternalLink, TrendingUp, Sparkles,
-  Command, Clock, Users, Zap
+  Command, Clock, Users, Zap, LogOut, ShieldCheck
 } from "lucide-react";
+import { supabase } from "../src/supabaseClient.js";
 
 /* ══════════════════════════════════════════════════════════════
    CJ INOVA · Design System v2
@@ -21,73 +22,19 @@ const T = {
   azulTint: "#eaf7fd",
 };
 
-/* ───────── DADOS (fonte: Controle - Inovação Controladoria Jurídica.xlsx) ───────── */
-const SEED_DORES = [
-  { id: "DOR-014", titulo: "Triagem manual de publicações trabalhistas consome 3h/dia", area: "Publicações", intensidade: 5, frequencia: 5, alcance: "Toda a equipe", status: "Em exploração" },
-  { id: "DOR-021", titulo: "Prazos calculados em planilha sem alerta automático", area: "Protocolo", intensidade: 5, frequencia: 4, alcance: "4 analistas", status: "Priorizada" },
-  { id: "DOR-008", titulo: "POPs espalhados em pastas, ninguém acha o mais recente", area: "Geral", intensidade: 3, frequencia: 5, alcance: "Toda a equipe", status: "Em exploração" },
-  { id: "DOR-030", titulo: "Sínteses de audiência refeitas do zero a cada caso", area: "Publicações", intensidade: 4, frequencia: 4, alcance: "6 pessoas", status: "Priorizada" },
-  { id: "DOR-035", titulo: "Sem visão consolidada de volumetria por cliente", area: "Relatório", intensidade: 3, frequencia: 2, alcance: "Coordenação", status: "Registrada" },
-];
-const SEED_IDEIAS = [
-  { id: "IDE-041", dorId: null, nucleo: "Geral", titulo: "Análise Preditiva de Processos", autores: "Bruna e Isa", prioridade: "Alta", notas: "Requer dados históricos robustos" },
-  { id: "IDE-042", dorId: null, nucleo: "Protocolo", titulo: "Checklist de Documentos de Protocolo", autores: "Jackeline, Lilian, Rebeca e Júlia", prioridade: "Alta", notas: "" },
-  { id: "IDE-043", dorId: null, nucleo: "Apoio", titulo: "Acompanhamento de Pauta de Audiências", autores: "Bruna, Isa e Clara", prioridade: "Alta", notas: "Integração com portais dos tribunais" },
-  { id: "IDE-044", dorId: null, nucleo: "Protocolo", titulo: "Robô de Protocolo", autores: "Jackeline e Isabella", prioridade: "Média", notas: "Alta complexidade — múltiplos sistemas" },
-  { id: "IDE-045", dorId: "DOR-014", nucleo: "Publicações", titulo: "Robô de Captura de Publicações e Intimações", autores: "Isa e Clara", prioridade: "Alta", notas: "" },
-  { id: "IDE-046", dorId: null, nucleo: "Publicações", titulo: "Agente de Acompanhamento de E-mail de Intimações", autores: "Clara", prioridade: "Média", notas: "Integração com e-mail corporativo" },
-  { id: "IDE-047", dorId: null, nucleo: "Protocolo", titulo: "Agente de Captura de Prints", autores: "Clara", prioridade: "Baixa", notas: "Suporte a automações de protocolo" },
-  { id: "IDE-048", dorId: null, nucleo: "Apoio", titulo: "Agente para Elaboração de Formulário de RPV", autores: "Rebeca", prioridade: "Média", notas: "Integração com sistema de RPV" },
-  { id: "IDE-049", dorId: null, nucleo: "Protocolo", titulo: "Agente de Captura de Certidões", autores: "Clara", prioridade: "Média", notas: "Consulta a portais de certidões" },
-  { id: "IDE-050", dorId: null, nucleo: "Publicações", titulo: "Agente para Comparação de Publicações Complementares", autores: "Beatris", prioridade: "Média", notas: "" },
-  { id: "IDE-051", dorId: null, nucleo: "Apoio", titulo: "Agente para Elaboração de Guias", autores: "Clara", prioridade: "Média", notas: "" },
-  { id: "IDE-052", dorId: "DOR-021", nucleo: "Publicações", titulo: "Agente de Cobrança Diária de Prazos Fatais e Antigos", autores: "Isa", prioridade: "Alta", notas: "Ideia da Isa; rascunhos de e-mail por núcleo" },
-  { id: "IDE-053", dorId: null, nucleo: "Protocolo", titulo: "Conferência Pré-Protocolo por Horário e Fatalidade", autores: "Isa", prioridade: "Alta", notas: "Ideia da Isa; valida horário, fatalidade e campos obrigatórios" },
-  { id: "IDE-054", dorId: null, nucleo: "Protocolo", titulo: "Agente de Conferência de Recibos de Protocolo", autores: "Isa", prioridade: "Média", notas: "Ideia da Isa; conferência de recibos e inconsistências" },
-  { id: "IDE-055", dorId: null, nucleo: "Cadastro", titulo: "Agente de Intake de Cadastro de Processos", autores: "Isa", prioridade: "Alta", notas: "Ideia da Isa; ficha de abertura/atualização de pasta" },
-];
-const SEED_PROJETOS = [
-  { id: "PRJ-010", dorId: null, nucleo: "Cadastro", titulo: "Conferência de Cadastros x Publicações", equipe: "Isabella", prioridade: "Alta", previsao: "jun/2026", fase: "Em Teste" },
-  { id: "PRJ-011", dorId: null, nucleo: "Cadastro", titulo: "Conferência de Abertura de Pasta", equipe: "Isabella", prioridade: "Média", previsao: "jun/2026", fase: "Em Teste" },
-  { id: "PRJ-012", dorId: null, nucleo: "Geral", titulo: "Assistente de Dúvidas da Controladoria Jurídica", equipe: "Bruna, Clara e Eve", prioridade: "Média", previsao: "jul/2026", fase: "Em Teste" },
-  { id: "PRJ-013", dorId: null, nucleo: "Publicações", titulo: "Agente Comparativo Complementares AASP x Principais", equipe: "Beatris", prioridade: "Média", previsao: "a definir", fase: "Em Teste" },
-  { id: "PRJ-014", dorId: null, nucleo: "Relatório", titulo: "Conferência de Relatórios Excel x ESPAIDER", equipe: "Clara e Eve", prioridade: "Alta", previsao: "jul/2026", fase: "Em Desenvolvimento" },
-  { id: "PRJ-015", dorId: null, nucleo: "Relatório", titulo: "Conferência de Relatórios Auditoria x Mensal", equipe: "Clara e Eve", prioridade: "Alta", previsao: "jul/2026", fase: "Em Desenvolvimento" },
-  { id: "PRJ-016", dorId: null, nucleo: "Apoio", titulo: "Conferências Termos Kurier", equipe: "Bruna e Isa", prioridade: "Média", previsao: "jul/2026", fase: "Em Desenvolvimento" },
-  { id: "PRJ-017", dorId: null, nucleo: "Apoio", titulo: "Monitoramento Suplementação OAB", equipe: "Beatris, Jackeline e Isa", prioridade: "Alta", previsao: "jul/2026", fase: "Em Desenvolvimento" },
-  { id: "PRJ-018", dorId: null, nucleo: "Geral", titulo: "Elaboração de Peça para Habilitação", equipe: "Clara", prioridade: "Média", previsao: "jul/2026", fase: "Em Desenvolvimento" },
-  { id: "PRJ-019", dorId: null, nucleo: "Protocolo", titulo: "Agente Auditor de PDF Jurídico", equipe: "Rebeca e Júlia", prioridade: "Alta", previsao: "jun/2026", fase: "Em Desenvolvimento" },
-  { id: "PRJ-020", dorId: "DOR-035", nucleo: "Geral", titulo: "Dashboard de Cobrança de Requisições Pendentes", equipe: "Beatris", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
-  { id: "PRJ-021", dorId: null, nucleo: "Relatório", titulo: "Dashboard de Relatórios", equipe: "Eve e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
-  { id: "PRJ-022", dorId: null, nucleo: "Relatório", titulo: "Volumetria Diária de Relatórios", equipe: "Eve e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
-  { id: "PRJ-023", dorId: null, nucleo: "Apoio", titulo: "Atualização de Procurações e Substabelecimentos", equipe: "Jackeline e Isabella", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
-  { id: "PRJ-024", dorId: null, nucleo: "Publicações", titulo: "Conferência de Publicações sem Vínculo", equipe: "Bruna e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
-  { id: "PRJ-025", dorId: null, nucleo: "Apoio", titulo: "Contratação de Correspondentes", equipe: "Bruna e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
-];
+/* ───────── DADOS: dores, ideias, projetos, agentes e posts vêm do Supabase (ver supabase/schema.sql) ───────── */
+const dorFromDb = (d) => ({ id: d.id, titulo: d.titulo, area: d.area, intensidade: d.intensidade, frequencia: d.frequencia, alcance: d.alcance, status: d.status });
+const ideiaFromDb = (i) => ({ id: i.id, dorId: i.dor_id, nucleo: i.nucleo, titulo: i.titulo, autores: i.autores, prioridade: i.prioridade, notas: i.notas });
+const projetoFromDb = (p) => ({ id: p.id, dorId: p.dor_id, nucleo: p.nucleo, titulo: p.titulo, equipe: p.equipe, prioridade: p.prioridade, previsao: p.previsao, fase: p.fase });
+const agenteFromDb = (a) => ({ id: a.id, nome: a.nome, nucleo: a.nucleo, objetivo: a.objetivo, criadoPor: a.criado_por, equipe: a.equipe, link: a.link || "" });
+const postFromDb = (p) => ({ id: p.id, autorId: p.autor_id, autor: p.profiles?.nome || "…", likesCount: p.likes_count, criadoEm: p.criado_em });
+
 /* Sem prompts registrados ainda — a biblioteca começa vazia até o time cadastrar o primeiro. */
 const SEED_PROMPTS = [];
-/* Agentes de IA já em uso pela Controladoria Jurídica (fonte: aba "Painel Geral", status "Em Uso"). */
-const SEED_GPTS = [
-  { id: 1, nome: "Atas de Audiência – CJ FIUS", nucleo: "Publicações", objetivo: "Análise completa de atas de audiência trabalhistas", criadoPor: "Isabella", equipe: "Isabella, Aline", link: "" },
-  { id: 2, nome: "Sínteses Padronizadas", nucleo: "Publicações", objetivo: "Síntese das publicações", criadoPor: "Isabella", equipe: "Isabella", link: "" },
-  { id: 3, nome: "Publicações Trabalhistas – CJ FIUS", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Aline", link: "" },
-  { id: 4, nome: "Publicações Penais", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa", link: "" },
-  { id: 5, nome: "Publicações Cíveis", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa", link: "" },
-  { id: 6, nome: "Publicações RJ e Bancário", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa", link: "" },
-  { id: 7, nome: "Publicações Tributárias", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa", link: "" },
-  { id: 8, nome: "Núcleo de Cadastros – CJ FIUS", nucleo: "Cadastro", objetivo: "Gestão e controle do núcleo de cadastros", criadoPor: "Jackeline, Isa", equipe: "Isabella", link: "" },
-  { id: 9, nome: "Cálculo RO e RR – Depósito Recursal", nucleo: "Apoio", objetivo: "Cálculo automatizado de depósitos recursais RO e RR", criadoPor: "Lilian", equipe: "Lilian e Júlia", link: "" },
-  { id: 10, nome: "Conferência de Guia", nucleo: "Apoio", objetivo: "Conferência e validação de guias de pagamento", criadoPor: "Júlia", equipe: "Jackeline, Rebeca, Clara, Bruna", link: "" },
-  { id: 11, nome: "Verificação de Compatibilidade Documental", nucleo: "Protocolo", objetivo: "Verificação de compatibilidade entre documentos", criadoPor: "Rebeca", equipe: "Rebeca e Júlia", link: "" },
-  { id: 12, nome: "Dashboard Cobrança de Publicações Pendentes do Dia", nucleo: "Publicações", objetivo: "Volumetria diária das publicações pendentes com o Jurídico", criadoPor: "Beatris", equipe: "Beatris", link: "" },
-  { id: 13, nome: "Dashboard Report Semanal – Requisições Pendentes", nucleo: "Geral", objetivo: "Volumetria semanal com visão macro das requisições pendentes com as áreas", criadoPor: "Beatris", equipe: "Beatris", link: "" },
-];
 /* Sem treinamentos publicados ainda. */
 const SEED_TREINAMENTOS = [];
 /* Sem documentos indexados ainda. */
 const SEED_DOCS = [];
-/* Sem posts — a comunidade começa vazia; os primeiros posts vêm de quem usar o Hub. */
-const SEED_FEED = [];
 /* Sem trilha de atividade real ainda — não há log de auditoria por trás do Hub. */
 const ATIVIDADES = [];
 
@@ -118,23 +65,150 @@ const NAV = [
   ]},
 ];
 
-/* ══════════════════ APP ══════════════════ */
+/* ══════════════════ APP (portão de autenticação) ══════════════════ */
 export default function HubCJInova() {
+  const [sessao, setSessao] = useState(undefined); // undefined = carregando · null = deslogado
+  const [perfil, setPerfil] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSessao(data.session));
+    const { data: assinatura } = supabase.auth.onAuthStateChange((_evento, s) => setSessao(s));
+    return () => assinatura.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!sessao) { setPerfil(null); return; }
+    let vivo = true;
+    supabase.from("profiles").select("*").eq("id", sessao.user.id).single()
+      .then(({ data }) => { if (vivo) setPerfil(data); });
+    return () => { vivo = false; };
+  }, [sessao]);
+
+  if (sessao === undefined) return <TelaCarregando />;
+  if (sessao === null) return <TelaLogin />;
+  if (!perfil) return <TelaCarregando />;
+
+  return <HubAutenticado sessao={sessao} perfil={perfil} />;
+}
+
+function TelaCarregando() {
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg, color: T.cinza, fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", fontSize: 13 }}>
+      <LogoFIUS size={26} cor={T.linha} />
+    </div>
+  );
+}
+
+function TelaLogin() {
+  const [modo, setModo] = useState("entrar");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [mensagem, setMensagem] = useState(null);
+
+  const enviar = async (e) => {
+    e.preventDefault();
+    setMensagem(null); setCarregando(true);
+    if (modo === "cadastrar") {
+      const { error } = await supabase.auth.signUp({ email, password: senha, options: { data: { nome } } });
+      if (error) setMensagem({ tipo: "erro", texto: error.message });
+      else setMensagem({ tipo: "ok", texto: "Conta criada! Se pedir confirmação por e-mail, confirme e depois entre ao lado." });
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+      if (error) setMensagem({ tipo: "erro", texto: error.message });
+    }
+    setCarregando(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg, fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif" }}>
+      <div className="card" style={{ width: "min(380px, 92vw)", padding: "32px 28px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+          <LogoFIUS size={30} cor={T.azul} />
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>CJ INOVA</div>
+            <div style={{ fontSize: 9.5, color: T.cinzaClaro, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" }}>Controladoria Jurídica</div>
+          </div>
+        </div>
+        <h1 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{modo === "entrar" ? "Entrar no Hub" : "Criar sua conta"}</h1>
+        <p style={{ fontSize: 12.5, color: T.cinza, marginBottom: 20, lineHeight: 1.5 }}>
+          {modo === "entrar" ? "Use o e-mail e senha do seu cadastro." : "Toda conta nova entra como Membro — peça a uma Administradora para liberar mais acesso."}
+        </p>
+        <form onSubmit={enviar} style={{ display: "grid", gap: 12 }}>
+          {modo === "cadastrar" && (
+            <div>
+              <Rotulo>Nome</Rotulo>
+              <input required value={nome} onChange={e => setNome(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+            </div>
+          )}
+          <div>
+            <Rotulo>E-mail</Rotulo>
+            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+          </div>
+          <div>
+            <Rotulo>Senha</Rotulo>
+            <input required type="password" minLength={6} value={senha} onChange={e => setSenha(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+          </div>
+          {mensagem && <div style={{ fontSize: 12, lineHeight: 1.5, color: mensagem.tipo === "erro" ? T.vermelho : T.verde }}>{mensagem.texto}</div>}
+          <button disabled={carregando} type="submit" className="press"
+            style={{ padding: "11px 16px", borderRadius: 10, border: "none", background: T.azul, color: "white", fontWeight: 700, fontSize: 13.5, cursor: carregando ? "wait" : "pointer" }}>
+            {carregando ? "Aguarde…" : modo === "entrar" ? "Entrar" : "Criar conta"}
+          </button>
+        </form>
+        <button onClick={() => { setModo(m => m === "entrar" ? "cadastrar" : "entrar"); setMensagem(null); }} className="press"
+          style={{ marginTop: 16, background: "none", border: "none", color: T.azul, fontSize: 12.5, fontWeight: 700, cursor: "pointer", width: "100%", textAlign: "center" }}>
+          {modo === "entrar" ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ APP AUTENTICADO ══════════════════ */
+function HubAutenticado({ sessao, perfil }) {
   const [tela, setTela] = useState("home");
-  const [dores, setDores] = useState(SEED_DORES);
-  const [ideias] = useState(SEED_IDEIAS);
-  const [projetos] = useState(SEED_PROJETOS);
+  const [dores, setDores] = useState([]);
+  const [ideias, setIdeias] = useState([]);
+  const [projetos, setProjetos] = useState([]);
+  const [agentes, setAgentes] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [curtidasMinhas, setCurtidasMinhas] = useState({});
+  const [carregandoDados, setCarregandoDados] = useState(true);
   const [prompts] = useState(SEED_PROMPTS);
-  const [agentes, setAgentes] = useState(SEED_GPTS);
-  const [posts, setPosts] = useState(SEED_FEED);
   const [favoritos, setFavoritos] = useState([]);
   const [copiado, setCopiado] = useState(null);
-  const [likes, setLikes] = useState({});
   const [dorSelecionada, setDorSelecionada] = useState(null);
   const [agenteSelecionado, setAgenteSelecionado] = useState(null);
   const [modalDor, setModalDor] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const [toast, setToast] = useState(null);
+
+  const podeEditar = perfil.papel === "editor" || perfil.papel === "admin";
+  const ehAdmin = perfil.papel === "admin";
+
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      const [rDores, rIdeias, rProjetos, rAgentes, rPosts, rCurtidas] = await Promise.all([
+        supabase.from("dores").select("*").order("id"),
+        supabase.from("ideias").select("*").order("id"),
+        supabase.from("projetos").select("*").order("id"),
+        supabase.from("agentes").select("*").order("id"),
+        supabase.from("posts").select("*, profiles(nome)").order("criado_em", { ascending: false }),
+        supabase.from("curtidas").select("post_id").eq("usuario_id", sessao.user.id),
+      ]);
+      if (!vivo) return;
+      setDores((rDores.data || []).map(dorFromDb));
+      setIdeias((rIdeias.data || []).map(ideiaFromDb));
+      setProjetos((rProjetos.data || []).map(projetoFromDb));
+      setAgentes((rAgentes.data || []).map(agenteFromDb));
+      setPosts((rPosts.data || []).map(postFromDb));
+      setCurtidasMinhas(Object.fromEntries((rCurtidas.data || []).map(c => [c.post_id, true])));
+      setCarregandoDados(false);
+    })();
+    return () => { vivo = false; };
+  }, [sessao.user.id]);
 
   useEffect(() => {
     const h = (e) => {
@@ -154,44 +228,83 @@ export default function HubCJInova() {
     notificar("Prompt copiado para a área de transferência");
   };
   const toggleFav = (id) => setFavoritos(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
-  const toggleLike = (id) => setLikes(l => ({ ...l, [id]: !l[id] }));
-  const publicarPost = (texto) => {
-    setPosts(p => [{ id: Date.now(), autor: "Isa", cargo: "Analista Jurídica · CJ INOVA", tempo: "agora", texto, likes: 0, comentarios: 0 }, ...p]);
-    notificar("Post publicado na comunidade");
-  };
-  const salvarLinkAgente = (id, link) => {
-    setAgentes(a => a.map(g => g.id === id ? { ...g, link } : g));
-    setAgenteSelecionado(g => g && g.id === id ? { ...g, link } : g);
-    notificar("Link do agente atualizado");
+
+  const registrarDor = async (nova) => {
+    const { error } = await supabase.from("dores").insert({
+      id: nova.id, titulo: nova.titulo, area: nova.area, intensidade: nova.intensidade,
+      frequencia: nova.frequencia, alcance: nova.alcance, status: nova.status,
+    });
+    if (error) { notificar("Não deu para registrar: " + error.message); return; }
+    setDores(d => [...d, nova]);
+    setModalDor(false);
+    notificar(`${nova.id} registrada no radar`);
   };
 
-  const props = { dores, ideias, projetos, prompts, agentes, posts, publicarPost, favoritos, toggleFav, copiado, copiarPrompt, likes, toggleLike, ideiasDe, projetosDe, setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar };
+  const salvarLinkAgente = async (id, link) => {
+    const { error } = await supabase.from("agentes").update({ link }).eq("id", id);
+    if (error) { notificar("Não deu para salvar o link: " + error.message); return; }
+    setAgentes(a => a.map(g => g.id === id ? { ...g, link } : g));
+    setAgenteSelecionado(g => g && g.id === id ? { ...g, link } : g);
+    notificar("Link do agente atualizado para todo o time");
+  };
+
+  const publicarPost = async (texto) => {
+    const { data, error } = await supabase.from("posts").insert({ autor_id: sessao.user.id, texto }).select("*, profiles(nome)").single();
+    if (error) { notificar("Não deu para publicar: " + error.message); return; }
+    setPosts(p => [postFromDb(data), ...p]);
+    notificar("Post publicado na comunidade");
+  };
+
+  const toggleLike = async (postId) => {
+    const curtido = curtidasMinhas[postId];
+    if (curtido) {
+      const { error } = await supabase.from("curtidas").delete().eq("post_id", postId).eq("usuario_id", sessao.user.id);
+      if (error) return;
+      setCurtidasMinhas(c => { const n = { ...c }; delete n[postId]; return n; });
+      setPosts(p => p.map(x => x.id === postId ? { ...x, likesCount: Math.max(0, x.likesCount - 1) } : x));
+    } else {
+      const { error } = await supabase.from("curtidas").insert({ post_id: postId, usuario_id: sessao.user.id });
+      if (error) return;
+      setCurtidasMinhas(c => ({ ...c, [postId]: true }));
+      setPosts(p => p.map(x => x.id === postId ? { ...x, likesCount: x.likesCount + 1 } : x));
+    }
+  };
+
+  const sair = () => supabase.auth.signOut();
+
+  const props = {
+    dores, ideias, projetos, prompts, agentes, posts, publicarPost, favoritos, toggleFav,
+    copiado, copiarPrompt, curtidasMinhas, toggleLike, ideiasDe, projetosDe,
+    setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar, podeEditar, ehAdmin, perfil,
+  };
 
   return (
     <div style={{ fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", background: T.bg, minHeight: "100vh", display: "flex", color: T.chumbo }}>
       <EstilosGlobais />
-      <Sidebar tela={tela} setTela={setTela} />
+      <Sidebar tela={tela} setTela={setTela} perfil={perfil} onSair={sair} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Topbar abrirPaleta={() => setPaleta(true)} setModalDor={setModalDor} />
         <main key={tela} className="pagina" style={{ flex: 1, padding: "26px 34px 48px", maxWidth: 1180, width: "100%", margin: "0 auto" }}>
-          {tela === "home" && <TelaHome {...props} />}
-          {tela === "dores" && <TelaDores {...props} />}
-          {tela === "ideias" && <TelaIdeias {...props} />}
-          {tela === "projetos" && <TelaProjetos {...props} />}
-          {tela === "prompts" && <TelaPrompts {...props} />}
-          {tela === "gpts" && <TelaGPTs {...props} />}
-          {tela === "treinamentos" && <TelaTreinamentos />}
-          {tela === "docs" && <TelaDocs />}
-          {tela === "comunidade" && <TelaComunidade {...props} />}
-          {tela === "indicadores" && <TelaIndicadores {...props} />}
-          {tela === "admin" && <TelaAdmin />}
+          {carregandoDados ? <TelaCarregando /> : <>
+            {tela === "home" && <TelaHome {...props} />}
+            {tela === "dores" && <TelaDores {...props} />}
+            {tela === "ideias" && <TelaIdeias {...props} />}
+            {tela === "projetos" && <TelaProjetos {...props} />}
+            {tela === "prompts" && <TelaPrompts {...props} />}
+            {tela === "gpts" && <TelaGPTs {...props} />}
+            {tela === "treinamentos" && <TelaTreinamentos />}
+            {tela === "docs" && <TelaDocs />}
+            {tela === "comunidade" && <TelaComunidade {...props} />}
+            {tela === "indicadores" && <TelaIndicadores {...props} />}
+            {tela === "admin" && <TelaAdmin ehAdmin={ehAdmin} meuId={sessao.user.id} />}
+          </>}
         </main>
       </div>
 
       {paleta && <Paleta fechar={() => setPaleta(false)} setTela={setTela} dores={dores} ideias={ideias} projetos={projetos} prompts={prompts} />}
       {dorSelecionada && <DrawerDor dor={dorSelecionada} ideias={ideiasDe(dorSelecionada.id)} projetos={projetosDe(dorSelecionada.id)} onClose={() => setDorSelecionada(null)} />}
-      {agenteSelecionado && <DrawerAgente agente={agenteSelecionado} onSalvarLink={salvarLinkAgente} onClose={() => setAgenteSelecionado(null)} />}
-      {modalDor && <ModalNovaDor onSalvar={(nova) => { setDores(d => [...d, nova]); setModalDor(false); notificar(`${nova.id} registrada no radar`); }} onClose={() => setModalDor(false)} proximo={`DOR-0${36 + dores.length - 5}`} />}
+      {agenteSelecionado && <DrawerAgente agente={agenteSelecionado} podeEditar={podeEditar} onSalvarLink={salvarLinkAgente} onClose={() => setAgenteSelecionado(null)} />}
+      {modalDor && <ModalNovaDor onSalvar={registrarDor} onClose={() => setModalDor(false)} proximo={`DOR-0${36 + dores.length - 5}`} />}
       {toast && <Toast msg={toast} />}
     </div>
   );
@@ -260,7 +373,9 @@ function EstilosGlobais() {
 }
 
 /* ══════════════════ ESTRUTURA ══════════════════ */
-function Sidebar({ tela, setTela }) {
+const PAPEL_LABEL = { admin: "Administradora", editor: "Editor(a)", membro: "Membro" };
+
+function Sidebar({ tela, setTela, perfil, onSair }) {
   return (
     <aside style={{ width: 248, background: T.surface, borderRight: `1px solid ${T.linha}`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
       <div style={{ padding: "20px 22px 16px", display: "flex", alignItems: "center", gap: 11 }}>
@@ -290,11 +405,14 @@ function Sidebar({ tela, setTela }) {
         ))}
       </nav>
       <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.linha}`, display: "flex", alignItems: "center", gap: 11 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.navy, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700 }}>IV</div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Isabella Vieira Chaves</div>
-          <div style={{ fontSize: 10.5, color: T.cinzaClaro }}>Administradora</div>
+        <Avatar nome={perfil.nome} tam={34} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{perfil.nome}</div>
+          <div style={{ fontSize: 10.5, color: T.cinzaClaro }}>{PAPEL_LABEL[perfil.papel] || perfil.papel}</div>
         </div>
+        <button onClick={onSair} className="press" title="Sair" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza, flexShrink: 0 }}>
+          <LogOut size={15} />
+        </button>
       </div>
     </aside>
   );
@@ -438,16 +556,17 @@ function Paleta({ fechar, setTela, dores, ideias, projetos, prompts }) {
 }
 
 /* ══════════════════ HOME ══════════════════ */
-function TelaHome({ dores, ideias, projetos, prompts, posts, setTela, ideiasDe }) {
+function TelaHome({ dores, ideias, projetos, prompts, posts, setTela, ideiasDe, perfil }) {
   const semIdeia = dores.filter(d => ideiasDe(d.id).length === 0).length;
   const ideiasVinculadas = ideias.filter(i => i.dorId).length;
   const projetosVinculados = projetos.filter(p => p.dorId).length;
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  const primeiroNome = perfil.nome.split(" ")[0];
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{saudacao}, Isa 👋</h1>
+        <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{saudacao}, {primeiroNome} 👋</h1>
         <p style={{ fontSize: 13.5, color: T.cinza, marginTop: 4 }}>
           {semIdeia > 0
             ? <>Há <strong style={{ color: T.vermelho }}>{semIdeia} {semIdeia === 1 ? "dor" : "dores"} sem ideia</strong> no radar esperando resposta. Vamos juntos?</>
@@ -483,7 +602,7 @@ function TelaHome({ dores, ideias, projetos, prompts, posts, setTela, ideiasDe }
               <div key={post.id} style={{ padding: "15px 0", borderBottom: i === 0 && posts.length > 1 ? `1px solid ${T.linhaSoft}` : "none", display: "flex", gap: 13 }}>
                 <Avatar nome={post.autor} />
                 <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700 }}>{post.autor} <span style={{ fontWeight: 400, color: T.cinzaClaro }}>· {post.tempo}</span></div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700 }}>{post.autor} <span style={{ fontWeight: 400, color: T.cinzaClaro }}>· {tempoRelativo(post.criadoEm)}</span></div>
                   <p style={{ fontSize: 13, marginTop: 4, lineHeight: 1.55, color: "#2a3442" }}>{post.texto}</p>
                 </div>
               </div>
@@ -1024,7 +1143,7 @@ function TelaGPTs({ agentes, setAgenteSelecionado }) {
   );
 }
 
-function DrawerAgente({ agente, onSalvarLink, onClose }) {
+function DrawerAgente({ agente, podeEditar, onSalvarLink, onClose }) {
   const [rascunhoLink, setRascunhoLink] = useState(agente.link || "");
   const linkValido = /^https?:\/\/.+/i.test(rascunhoLink.trim());
   const salvar = () => { if (linkValido) onSalvarLink(agente.id, rascunhoLink.trim()); };
@@ -1065,20 +1184,29 @@ function DrawerAgente({ agente, onSalvarLink, onClose }) {
           )}
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Link de redirecionamento</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input value={rascunhoLink} onChange={e => setRascunhoLink(e.target.value)}
-                placeholder="https://espaider…, https://kurier…, iManage…"
-                style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface }} />
-              <button onClick={salvar} disabled={!linkValido || rascunhoLink.trim() === (agente.link || "")} className="press"
-                style={{ padding: "10px 16px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700, color: "white", cursor: linkValido ? "pointer" : "not-allowed", background: linkValido && rascunhoLink.trim() !== (agente.link || "") ? T.azul : T.linha }}>
-                Salvar
-              </button>
-            </div>
-            <div style={{ fontSize: 11, color: T.cinzaClaro, marginTop: 6 }}>
-              {agente.link
-                ? "Salvo apenas nesta sessão do navegador — quando o login de administradora estiver ativo, este link fica salvo para todo o time."
-                : "Ainda sem link cadastrado. Cole a URL real do agente (Espaider, Kurier, iManage etc.) para habilitar o botão \"Abrir agente\"."}
-            </div>
+            {podeEditar ? (
+              <>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={rascunhoLink} onChange={e => setRascunhoLink(e.target.value)}
+                    placeholder="https://espaider…, https://kurier…, iManage…"
+                    style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface }} />
+                  <button onClick={salvar} disabled={!linkValido || rascunhoLink.trim() === (agente.link || "")} className="press"
+                    style={{ padding: "10px 16px", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700, color: "white", cursor: linkValido ? "pointer" : "not-allowed", background: linkValido && rascunhoLink.trim() !== (agente.link || "") ? T.azul : T.linha }}>
+                    Salvar
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: T.cinzaClaro, marginTop: 6 }}>
+                  {agente.link
+                    ? "Salvo para todo o time."
+                    : "Ainda sem link cadastrado. Cole a URL real do agente (Espaider, Kurier, iManage etc.) para habilitar o botão \"Abrir agente\"."}
+                </div>
+              </>
+            ) : (
+              <div className="card" style={{ padding: 14, fontSize: 12.5, color: T.cinza }}>
+                {agente.link ? agente.link : "Ainda sem link cadastrado."} <br />
+                <span style={{ color: T.cinzaClaro }}>Só quem é Editor(a) ou Administradora pode alterar este link.</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1167,7 +1295,18 @@ function TelaDocs() {
 }
 
 /* ══════════════════ COMUNIDADE ══════════════════ */
-function TelaComunidade({ posts, publicarPost, likes, toggleLike }) {
+function tempoRelativo(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h}h`;
+  const d = Math.floor(h / 24);
+  return `há ${d} ${d === 1 ? "dia" : "dias"}`;
+}
+
+function TelaComunidade({ posts, publicarPost, curtidasMinhas, toggleLike, perfil }) {
   const [rascunho, setRascunho] = useState("");
   const enviar = () => {
     const texto = rascunho.trim();
@@ -1181,7 +1320,7 @@ function TelaComunidade({ posts, publicarPost, likes, toggleLike }) {
         sub="Dicas, boas práticas e novidades do time. Vamos juntos? 💙" />
       <div style={{ maxWidth: 640 }}>
         <div className="card" style={{ padding: "14px 18px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center" }}>
-          <Avatar nome="Isa" tam={32} />
+          <Avatar nome={perfil.nome} tam={32} />
           <input value={rascunho} onChange={e => setRascunho(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") enviar(); }}
             placeholder="Compartilhe uma dica, automação ou novidade…"
@@ -1193,22 +1332,21 @@ function TelaComunidade({ posts, publicarPost, likes, toggleLike }) {
         ) : (
         <div className="stagger" style={{ display: "grid", gap: 13 }}>
           {posts.map(post => {
-            const curtido = likes[post.id];
+            const curtido = curtidasMinhas[post.id];
             return (
               <div key={post.id} className="card" style={{ padding: "18px 20px" }}>
                 <div style={{ display: "flex", gap: 12, marginBottom: 11 }}>
                   <Avatar nome={post.autor} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{post.autor}</div>
-                    <div style={{ fontSize: 11, color: T.cinzaClaro }}>{post.cargo} · {post.tempo}</div>
+                    <div style={{ fontSize: 11, color: T.cinzaClaro }}>{tempoRelativo(post.criadoEm)}</div>
                   </div>
                 </div>
                 <p style={{ fontSize: 13.5, lineHeight: 1.6, marginBottom: 13, color: "#2a3442" }}>{post.texto}</p>
                 <div style={{ display: "flex", gap: 16, fontSize: 12, paddingTop: 11, borderTop: `1px solid ${T.linhaSoft}` }}>
                   <button onClick={() => toggleLike(post.id)} className="press" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: curtido ? T.vermelho : T.cinza, fontWeight: 700, fontSize: 12 }}>
-                    <Heart size={15} className={curtido ? "heart-pop" : ""} fill={curtido ? T.vermelho : "none"} /> {post.likes + (curtido ? 1 : 0)}
+                    <Heart size={15} className={curtido ? "heart-pop" : ""} fill={curtido ? T.vermelho : "none"} /> {post.likesCount}
                   </button>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, color: T.cinza, fontWeight: 600 }}><MessageCircle size={15} /> {post.comentarios} comentários</span>
                 </div>
               </div>
             );
@@ -1268,62 +1406,64 @@ function TelaIndicadores({ dores, ideias, projetos, prompts }) {
 
 /* ══════════════════ ADMINISTRAÇÃO ══════════════════ */
 /* Pessoas reais citadas na planilha (quem deu ideia / quem ajudou a construir os agentes). */
-const usuarios = [
-  { nome: "Isabella Vieira Chaves", papel: "Administradora" },
-  { nome: "Bruna", papel: "Membro" },
-  { nome: "Clara", papel: "Membro" },
-  { nome: "Lilian", papel: "Membro" },
-  { nome: "Beatris", papel: "Membro" },
-  { nome: "Rebeca", papel: "Membro" },
-  { nome: "Júlia", papel: "Membro" },
-  { nome: "Jackeline", papel: "Membro" },
-  { nome: "Eve", papel: "Membro" },
-  { nome: "Daniela", papel: "Membro" },
-  { nome: "Raíssa", papel: "Membro" },
-];
-function TelaAdmin() {
-  const trilha = [];
+function TelaAdmin({ ehAdmin, meuId }) {
+  const [usuarios, setUsuarios] = useState(null);
+  const [salvandoId, setSalvandoId] = useState(null);
+
+  useEffect(() => {
+    let vivo = true;
+    supabase.from("profiles").select("*").order("criado_em").then(({ data }) => { if (vivo) setUsuarios(data || []); });
+    return () => { vivo = false; };
+  }, []);
+
+  const mudarPapel = async (id, papel) => {
+    setSalvandoId(id);
+    const { error } = await supabase.from("profiles").update({ papel }).eq("id", id);
+    if (!error) setUsuarios(u => u.map(x => x.id === id ? { ...x, papel } : x));
+    setSalvandoId(null);
+  };
+
   return (
     <div>
       <Cabecalho eyebrow="Time & gestão" titulo="Administração"
-        sub="Usuários, papéis e auditoria. Governança proporcional: pesada só onde o investimento é pesado." />
+        sub="Usuários e papéis reais — cada conta é criada pela própria pessoa e começa como Membro." />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
         <div>
           <SubTitulo>Usuários & papéis</SubTitulo>
+          {usuarios === null ? (
+            <div style={{ fontSize: 12.5, color: T.cinza }}>Carregando…</div>
+          ) : usuarios.length === 0 ? (
+            <Vazio titulo="Nenhum usuário ainda" sub="As contas aparecem aqui assim que alguém se cadastra no Hub." />
+          ) : (
           <div className="stagger" style={{ display: "grid", gap: 9 }}>
             {usuarios.map(u => (
-              <div key={u.nome} className="card lift" style={{ display: "flex", alignItems: "center", gap: 13, padding: "13px 16px" }}>
+              <div key={u.id} className="card lift" style={{ display: "flex", alignItems: "center", gap: 13, padding: "13px 16px" }}>
                 <Avatar nome={u.nome} tam={36} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{u.nome}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{u.nome}{u.id === meuId && <span style={{ color: T.cinzaClaro, fontWeight: 500 }}> (você)</span>}</div>
                   <div style={{ fontSize: 11.5, color: T.cinzaClaro }}>Controladoria Jurídica</div>
                 </div>
-                <Badge texto={u.papel} cor={u.papel === "Administradora" ? T.azul : T.cinza} />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <SubTitulo>Trilha de auditoria</SubTitulo>
-          {trilha.length === 0 ? (
-            <Vazio titulo="Sem trilha de auditoria ainda" sub="As ações reais de cada pessoa (editar prompt, cadastrar agente, mover projeto) aparecerão aqui conforme o Hub for usado." />
-          ) : (
-          <div className="card" style={{ padding: "18px 20px" }}>
-            {trilha.map((a, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, paddingBottom: i < trilha.length - 1 ? 16 : 0, position: "relative" }}>
-                {i < trilha.length - 1 && <div style={{ position: "absolute", left: 4.5, top: 14, bottom: 0, width: 1.5, background: T.linhaSoft }} />}
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: T.navy, marginTop: 3, flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontSize: 12.5, lineHeight: 1.5 }}><strong>{a.quem}</strong> {a.oque}</div>
-                  <div className="num" style={{ fontSize: 11, color: T.cinzaClaro, marginTop: 2 }}>{a.quando}</div>
-                </div>
+                {ehAdmin ? (
+                  <select value={u.papel} disabled={salvandoId === u.id} onChange={e => mudarPapel(u.id, e.target.value)}
+                    style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.linha}`, fontSize: 12.5, fontWeight: 700, color: u.papel === "admin" ? T.azul : T.chumbo, background: T.surface }}>
+                    <option value="membro">Membro</option>
+                    <option value="editor">Editor(a)</option>
+                    <option value="admin">Administradora</option>
+                  </select>
+                ) : (
+                  <Badge texto={PAPEL_LABEL[u.papel] || u.papel} cor={u.papel === "admin" ? T.azul : T.cinza} />
+                )}
               </div>
             ))}
           </div>
           )}
+        </div>
+        <div>
+          <SubTitulo>Trilha de auditoria</SubTitulo>
+          <Vazio titulo="Sem trilha de auditoria ainda" sub="Um log de ações reais (quem editou o quê e quando) é uma extensão futura — hoje o Hub registra apenas o estado atual dos dados." />
           <div className="card" style={{ marginTop: 12, padding: 15, fontSize: 12, color: T.cinza, lineHeight: 1.55, border: `1px dashed ${T.linha}`, display: "flex", gap: 10 }}>
             <Users size={14} color={T.azul} style={{ flexShrink: 0, marginTop: 2 }} />
-            <span>Papéis: <strong style={{ color: T.chumbo }}>Administradora</strong> gerencia tudo · <strong style={{ color: T.chumbo }}>Membro</strong> registra dores, comenta e favorita. Pessoas listadas com base nas autorias reais da planilha de inovação.</span>
+            <span>Papéis: <strong style={{ color: T.chumbo }}>Administradora</strong> gerencia dados e usuários · <strong style={{ color: T.chumbo }}>Editor(a)</strong> cria e edita ideias, projetos e agentes · <strong style={{ color: T.chumbo }}>Membro</strong> registra dores, comenta e favorita.{!ehAdmin && " Só uma Administradora pode alterar papéis."}</span>
           </div>
         </div>
       </div>
