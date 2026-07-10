@@ -64,41 +64,32 @@ const SEED_PROJETOS = [
   { id: "PRJ-024", dorId: null, nucleo: "Publicações", titulo: "Conferência de Publicações sem Vínculo", equipe: "Bruna e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
   { id: "PRJ-025", dorId: null, nucleo: "Apoio", titulo: "Contratação de Correspondentes", equipe: "Bruna e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
 ];
-const SEED_PROMPTS = [
-  { id: 1, titulo: "Síntese de ata de audiência trabalhista", categoria: "Trabalhista", ferramenta: "Claude", autor: "Isa", data: "02/07/2026", tags: ["audiência", "síntese"], avaliacao: 4.8, usos: 47, texto: "Você é um analista jurídico da Controladoria. Analise a ata de audiência anexa e produza uma síntese seguindo o modelo padronizado: partes, ocorrências, decisões, prazos apontados e providências. Use linguagem objetiva e o padrão de nomenclatura Espaider." },
-  { id: 2, titulo: "Conferência de prazo processual", categoria: "Controle", ferramenta: "Claude", autor: "Bruna", data: "28/06/2026", tags: ["prazo", "conferência"], avaliacao: 4.5, usos: 32, texto: "A partir da publicação abaixo, identifique: tipo de ato, data de disponibilização, início da contagem, prazo aplicável (CLT/CPC) e data fatal. Aponte qualquer ambiguidade que exija conferência humana." },
-  { id: 3, titulo: "Resumo executivo de POP", categoria: "Conhecimento", ferramenta: "Copilot", autor: "Clara", data: "20/06/2026", tags: ["POP", "resumo"], avaliacao: 4.2, usos: 18, texto: "Resuma o POP anexo em no máximo 10 linhas, destacando: objetivo, quem executa, gatilho de início, passos críticos e ponto de controle. Formato: tópicos curtos." },
-  { id: 4, titulo: "E-mail de follow-up para cliente", categoria: "Comunicação", ferramenta: "ChatGPT", autor: "Lilian", data: "15/06/2026", tags: ["e-mail", "cliente"], avaliacao: 4.0, usos: 25, texto: "Redija um e-mail de atualização processual para o cliente, em linguagem simples e sem juridiquês, informando o andamento abaixo. Tom FIUS: descomplicado, seguro e gentil." },
-];
+/* Sem prompts registrados ainda — a biblioteca começa vazia até o time cadastrar o primeiro. */
+const SEED_PROMPTS = [];
+/* Agentes de IA já em uso pela Controladoria Jurídica (fonte: aba "Painel Geral", status "Em Uso"). */
 const SEED_GPTS = [
-  { id: 1, nome: "Publicações Trabalhistas CJ", objetivo: "Analisar publicações e atas, gerar sínteses padronizadas e apontar prazos", quando: "Sempre que chegar publicação trabalhista para triagem", responsavel: "Isa", versao: "v2.3", ferramenta: "Claude Skill" },
-  { id: 2, nome: "Assistente de Volumetria", objetivo: "Consultar dados consolidados de volumetria por cliente", quando: "Fechamento mensal e reuniões de coordenação", responsavel: "Bruna", versao: "v1.1", ferramenta: "GPT" },
-  { id: 3, nome: "Revisor de POPs", objetivo: "Auditar consistência e formatação de procedimentos", quando: "Antes de publicar ou atualizar qualquer POP", responsavel: "Clara", versao: "v1.0", ferramenta: "GPT" },
+  { id: 1, nome: "Atas de Audiência – CJ FIUS", nucleo: "Publicações", objetivo: "Análise completa de atas de audiência trabalhistas", criadoPor: "Isabella", equipe: "Isabella, Aline" },
+  { id: 2, nome: "Sínteses Padronizadas", nucleo: "Publicações", objetivo: "Síntese das publicações", criadoPor: "Isabella", equipe: "Isabella" },
+  { id: 3, nome: "Publicações Trabalhistas – CJ FIUS", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Aline" },
+  { id: 4, nome: "Publicações Penais", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa" },
+  { id: 5, nome: "Publicações Cíveis", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa" },
+  { id: 6, nome: "Publicações RJ e Bancário", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa" },
+  { id: 7, nome: "Publicações Tributárias", nucleo: "Publicações", objetivo: "Classificação e síntese das publicações", criadoPor: "Isabella", equipe: "Isabella, Bruna, Beatris, Clara, Aline, Raíssa" },
+  { id: 8, nome: "Núcleo de Cadastros – CJ FIUS", nucleo: "Cadastro", objetivo: "Gestão e controle do núcleo de cadastros", criadoPor: "Jackeline, Isa", equipe: "Isabella" },
+  { id: 9, nome: "Cálculo RO e RR – Depósito Recursal", nucleo: "Apoio", objetivo: "Cálculo automatizado de depósitos recursais RO e RR", criadoPor: "Lilian", equipe: "Lilian e Júlia" },
+  { id: 10, nome: "Conferência de Guia", nucleo: "Apoio", objetivo: "Conferência e validação de guias de pagamento", criadoPor: "Júlia", equipe: "Jackeline, Rebeca, Clara, Bruna" },
+  { id: 11, nome: "Verificação de Compatibilidade Documental", nucleo: "Protocolo", objetivo: "Verificação de compatibilidade entre documentos", criadoPor: "Rebeca", equipe: "Rebeca e Júlia" },
+  { id: 12, nome: "Dashboard Cobrança de Publicações Pendentes do Dia", nucleo: "Publicações", objetivo: "Volumetria diária das publicações pendentes com o Jurídico", criadoPor: "Beatris", equipe: "Beatris" },
+  { id: 13, nome: "Dashboard Report Semanal – Requisições Pendentes", nucleo: "Geral", objetivo: "Volumetria semanal com visão macro das requisições pendentes com as áreas", criadoPor: "Beatris", equipe: "Beatris" },
 ];
-const SEED_TREINAMENTOS = [
-  { id: 1, titulo: "Fundamentos de IA para o Jurídico", categoria: "IA", instrutor: "Isa", formato: "video", duracao: "45 min", desc: "O que é um LLM, o que ele faz bem e onde exige conferência humana." },
-  { id: 2, titulo: "Como usar a Biblioteca de Prompts", categoria: "Ferramentas", instrutor: "Isa", formato: "video", duracao: "20 min", desc: "Encontrar, adaptar e avaliar prompts do acervo da CJ." },
-  { id: 3, titulo: "POP de Triagem de Publicações", categoria: "Processos", instrutor: "Bruna", formato: "pdf", duracao: "leitura 15 min", desc: "Procedimento oficial passo a passo com pontos de controle." },
-  { id: 4, titulo: "Pensamento crítico na era da IA", categoria: "Competências", instrutor: "Lilian", formato: "apresentacao", duracao: "30 min", desc: "Inovação responsável: manter as habilidades humanas afiadas." },
-];
-const SEED_DOCS = [
-  { id: 1, nome: "POP — Triagem de Publicações Trabalhistas", pasta: "POPs", tipo: "PDF", atualizado: "01/07/2026", autor: "Bruna" },
-  { id: 2, nome: "Fluxograma — Ciclo da Dor (CJ INOVA)", pasta: "Fluxogramas", tipo: "PDF", atualizado: "24/06/2026", autor: "Isa" },
-  { id: 3, nome: "Modelo — Síntese de Audiência", pasta: "Modelos", tipo: "DOCX", atualizado: "18/06/2026", autor: "Isa" },
-  { id: 4, nome: "Manual — Nomenclatura Espaider", pasta: "Manuais", tipo: "PDF", atualizado: "10/06/2026", autor: "Clara" },
-  { id: 5, nome: "Template — Card de Projeto (Planner)", pasta: "Templates", tipo: "PPTX", atualizado: "05/06/2026", autor: "Isa" },
-];
-const SEED_FEED = [
-  { id: 1, autor: "Bruna", cargo: "Analista Jurídica", tempo: "há 2h", texto: "Dica: no prompt de conferência de prazo, colar a publicação inteira (com cabeçalho do diário) melhora muito a identificação do tipo de ato. Testei em 15 casos hoje. 🚀", likes: 8, comentarios: 3 },
-  { id: 2, autor: "Isa", cargo: "Analista Jurídica · CJ INOVA", tempo: "há 1 dia", texto: "Nova versão da skill de Publicações Trabalhistas no ar (v2.3)! Agora ela aponta o prazo com base na planilha oficial. Quem usar essa semana, registra o feedback na página da GPT. 💙", likes: 12, comentarios: 5 },
-  { id: 3, autor: "Lilian", cargo: "Analista Jurídica", tempo: "há 2 dias", texto: "Compartilhando o material da conversa sobre inovação responsável: automatizar sim, mas sem terceirizar o nosso senso crítico. O treinamento está na biblioteca. Vamos juntos?", likes: 15, comentarios: 7 },
-];
-const ATIVIDADES = [
-  { quando: "hoje, 09:12", quem: "Isa", acao: "atualizou o prompt", alvo: "Síntese de ata de audiência", tipo: "prompt" },
-  { quando: "ontem, 16:40", quem: "Bruna", acao: "moveu para Desenvolvimento", alvo: "PRJ-016 · Conferências Termos Kurier", tipo: "projeto" },
-  { quando: "ontem, 11:05", quem: "Clara", acao: "registrou a ideia", alvo: "IDE-043 · Acompanhamento de Pauta de Audiências", tipo: "ideia" },
-  { quando: "28/06", quem: "Lilian", acao: "publicou na comunidade", alvo: "Inovação responsável", tipo: "post" },
-];
+/* Sem treinamentos publicados ainda. */
+const SEED_TREINAMENTOS = [];
+/* Sem documentos indexados ainda. */
+const SEED_DOCS = [];
+/* Sem posts — a comunidade começa vazia; os primeiros posts vêm de quem usar o Hub. */
+const SEED_FEED = [];
+/* Sem trilha de atividade real ainda — não há log de auditoria por trás do Hub. */
+const ATIVIDADES = [];
 
 const AREAS = ["Todas", "Publicações", "Apoio", "Geral", "Relatório", "Protocolo", "Cadastro"];
 const scoreDor = (d) => d.intensidade * d.frequencia;
@@ -134,10 +125,12 @@ export default function HubCJInova() {
   const [ideias] = useState(SEED_IDEIAS);
   const [projetos] = useState(SEED_PROJETOS);
   const [prompts] = useState(SEED_PROMPTS);
-  const [favoritos, setFavoritos] = useState([1]);
+  const [posts, setPosts] = useState(SEED_FEED);
+  const [favoritos, setFavoritos] = useState([]);
   const [copiado, setCopiado] = useState(null);
   const [likes, setLikes] = useState({});
   const [dorSelecionada, setDorSelecionada] = useState(null);
+  const [agenteSelecionado, setAgenteSelecionado] = useState(null);
   const [modalDor, setModalDor] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const [toast, setToast] = useState(null);
@@ -161,8 +154,12 @@ export default function HubCJInova() {
   };
   const toggleFav = (id) => setFavoritos(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
   const toggleLike = (id) => setLikes(l => ({ ...l, [id]: !l[id] }));
+  const publicarPost = (texto) => {
+    setPosts(p => [{ id: Date.now(), autor: "Isa", cargo: "Analista Jurídica · CJ INOVA", tempo: "agora", texto, likes: 0, comentarios: 0 }, ...p]);
+    notificar("Post publicado na comunidade");
+  };
 
-  const props = { dores, ideias, projetos, prompts, favoritos, toggleFav, copiado, copiarPrompt, likes, toggleLike, ideiasDe, projetosDe, setDorSelecionada, setModalDor, setTela, notificar };
+  const props = { dores, ideias, projetos, prompts, posts, publicarPost, favoritos, toggleFav, copiado, copiarPrompt, likes, toggleLike, ideiasDe, projetosDe, setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar };
 
   return (
     <div style={{ fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", background: T.bg, minHeight: "100vh", display: "flex", color: T.chumbo }}>
@@ -176,7 +173,7 @@ export default function HubCJInova() {
           {tela === "ideias" && <TelaIdeias {...props} />}
           {tela === "projetos" && <TelaProjetos {...props} />}
           {tela === "prompts" && <TelaPrompts {...props} />}
-          {tela === "gpts" && <TelaGPTs />}
+          {tela === "gpts" && <TelaGPTs {...props} />}
           {tela === "treinamentos" && <TelaTreinamentos />}
           {tela === "docs" && <TelaDocs />}
           {tela === "comunidade" && <TelaComunidade {...props} />}
@@ -187,6 +184,7 @@ export default function HubCJInova() {
 
       {paleta && <Paleta fechar={() => setPaleta(false)} setTela={setTela} dores={dores} ideias={ideias} projetos={projetos} prompts={prompts} />}
       {dorSelecionada && <DrawerDor dor={dorSelecionada} ideias={ideiasDe(dorSelecionada.id)} projetos={projetosDe(dorSelecionada.id)} onClose={() => setDorSelecionada(null)} />}
+      {agenteSelecionado && <DrawerAgente agente={agenteSelecionado} onClose={() => setAgenteSelecionado(null)} />}
       {modalDor && <ModalNovaDor onSalvar={(nova) => { setDores(d => [...d, nova]); setModalDor(false); notificar(`${nova.id} registrada no radar`); }} onClose={() => setModalDor(false)} proximo={`DOR-0${36 + dores.length - 5}`} />}
       {toast && <Toast msg={toast} />}
     </div>
@@ -434,8 +432,10 @@ function Paleta({ fechar, setTela, dores, ideias, projetos, prompts }) {
 }
 
 /* ══════════════════ HOME ══════════════════ */
-function TelaHome({ dores, ideias, projetos, prompts, setTela, ideiasDe }) {
+function TelaHome({ dores, ideias, projetos, prompts, posts, setTela, ideiasDe }) {
   const semIdeia = dores.filter(d => ideiasDe(d.id).length === 0).length;
+  const ideiasVinculadas = ideias.filter(i => i.dorId).length;
+  const projetosVinculados = projetos.filter(p => p.dorId).length;
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   return (
@@ -454,9 +454,9 @@ function TelaHome({ dores, ideias, projetos, prompts, setTela, ideiasDe }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 16 }}>Fluxo da dor · trimestre atual</div>
         <div style={{ display: "flex", alignItems: "center", gap: 0, flexWrap: "wrap" }}>
           <EtapaFunil n={dores.length} label="Dores no radar" cor={T.azul} onClick={() => setTela("dores")} />
-          <ConectorFunil pct={Math.round(ideias.length / dores.length * 100)} />
-          <EtapaFunil n={ideias.length} label="Ideias ancoradas" cor={T.amarelo} onClick={() => setTela("ideias")} />
-          <ConectorFunil pct={Math.round(projetos.length / ideias.length * 100)} />
+          <ConectorFunil vinculados={ideiasVinculadas} total={ideias.length} label="vinculadas a uma dor" />
+          <EtapaFunil n={ideias.length} label="Ideias no banco" cor={T.amarelo} onClick={() => setTela("ideias")} />
+          <ConectorFunil vinculados={projetosVinculados} total={projetos.length} label="vinculados a uma dor" />
           <EtapaFunil n={projetos.length} label="Projetos em curso" cor={T.verde} onClick={() => setTela("projetos")} />
         </div>
       </div>
@@ -469,9 +469,12 @@ function TelaHome({ dores, ideias, projetos, prompts, setTela, ideiasDe }) {
           </div>
 
           <SubTitulo acao={<LinkVer onClick={() => setTela("comunidade")} />}>Últimas da comunidade</SubTitulo>
+          {posts.length === 0 ? (
+            <div className="card" style={{ padding: "20px 22px", fontSize: 12.5, color: T.cinza }}>Nenhum post ainda — seja a primeira pessoa a compartilhar algo com o time.</div>
+          ) : (
           <div className="card" style={{ padding: "4px 22px" }}>
-            {SEED_FEED.slice(0, 2).map((post, i) => (
-              <div key={post.id} style={{ padding: "15px 0", borderBottom: i === 0 ? `1px solid ${T.linhaSoft}` : "none", display: "flex", gap: 13 }}>
+            {posts.slice(0, 2).map((post, i) => (
+              <div key={post.id} style={{ padding: "15px 0", borderBottom: i === 0 && posts.length > 1 ? `1px solid ${T.linhaSoft}` : "none", display: "flex", gap: 13 }}>
                 <Avatar nome={post.autor} />
                 <div>
                   <div style={{ fontSize: 12.5, fontWeight: 700 }}>{post.autor} <span style={{ fontWeight: 400, color: T.cinzaClaro }}>· {post.tempo}</span></div>
@@ -480,6 +483,7 @@ function TelaHome({ dores, ideias, projetos, prompts, setTela, ideiasDe }) {
               </div>
             ))}
           </div>
+          )}
         </div>
 
         <div>
@@ -492,6 +496,9 @@ function TelaHome({ dores, ideias, projetos, prompts, setTela, ideiasDe }) {
           </div>
 
           <SubTitulo>Atividade recente</SubTitulo>
+          {ATIVIDADES.length === 0 ? (
+            <div className="card" style={{ padding: "18px 20px", fontSize: 12.5, color: T.cinza }}>Sem atividade registrada ainda.</div>
+          ) : (
           <div className="card" style={{ padding: "18px 20px" }}>
             {ATIVIDADES.map((a, i) => (
               <div key={i} style={{ display: "flex", gap: 12, paddingBottom: i < ATIVIDADES.length - 1 ? 16 : 0, position: "relative" }}>
@@ -504,6 +511,7 @@ function TelaHome({ dores, ideias, projetos, prompts, setTela, ideiasDe }) {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
     </div>
@@ -519,10 +527,11 @@ function EtapaFunil({ n, label, cor, onClick }) {
   );
 }
 
-function ConectorFunil({ pct }) {
+function ConectorFunil({ vinculados, total, label }) {
+  const pct = total ? Math.round((vinculados / total) * 100) : 0;
   return (
-    <div style={{ flex: 1, minWidth: 70, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "0 6px" }}>
-      <span className="num" style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro }}>{pct}% avançam</span>
+    <div style={{ flex: 1, minWidth: 90, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "0 6px" }}>
+      <span className="num" style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, whiteSpace: "nowrap" }}>{vinculados} de {total} {label}</span>
       <div style={{ width: "100%", position: "relative" }}>
         <Barra pct={pct} cor={T.azul} alt={4} />
       </div>
@@ -963,36 +972,87 @@ function TelaPrompts({ prompts, favoritos, toggleFav, copiado, copiarPrompt }) {
 }
 
 /* ══════════════════ GPTs & SKILLS ══════════════════ */
-function TelaGPTs() {
+function TelaGPTs({ setAgenteSelecionado }) {
+  const [busca, setBusca] = useState("");
+  const [nucleo, setNucleo] = useState("Todos");
+  const nucleos = ["Todos", ...new Set(SEED_GPTS.map(g => g.nucleo))];
+  const lista = SEED_GPTS
+    .filter(g => nucleo === "Todos" || g.nucleo === nucleo)
+    .filter(g => g.nome.toLowerCase().includes(busca.toLowerCase()));
   return (
     <div>
       <Cabecalho eyebrow="Acervo de IA" titulo="GPTs & Skills"
-        sub="Cada assistente tem dono, versão e regra clara de quando usar. Nada de GPT fantasma que só uma pessoa conhece." />
-      <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
-        {SEED_GPTS.map(g => (
-          <div key={g.id} className="card lift" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: T.chumbo, display: "flex", alignItems: "center", justifyContent: "center" }}><LogoFIUS size={19} cor={T.azul} /></div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <Badge texto={g.ferramenta} cor={T.roxo} />
-                <Badge texto={g.versao} cor={T.cinza} />
+        sub="Os agentes de IA já em uso pela Controladoria Jurídica, por núcleo — quem criou, quem ajudou a construir." />
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <CampoBusca valor={busca} onChange={setBusca} placeholder="Buscar agente" />
+        {nucleos.map(n => <Chip key={n} ativo={nucleo === n} onClick={() => setNucleo(n)}>{n}</Chip>)}
+      </div>
+      {lista.length === 0 ? (
+        <Vazio titulo="Nenhum agente encontrado" sub="Tente outro termo ou mude o núcleo." />
+      ) : (
+        <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+          {lista.map(g => (
+            <div key={g.id} className="card lift" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: T.chumbo, display: "flex", alignItems: "center", justifyContent: "center" }}><LogoFIUS size={19} cor={T.azul} /></div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <Badge texto={g.nucleo} cor={T.cinza} />
+                  <Badge texto="Em Uso" cor={T.verde} />
+                </div>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 5, lineHeight: 1.3 }}>{g.nome}</div>
+              <div style={{ fontSize: 12.5, color: T.cinza, lineHeight: 1.55, marginBottom: 16, flex: 1 }}>{g.objetivo}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: T.cinza }}>
+                  <Avatar nome={g.criadoPor.split(",")[0].split(" e ")[0]} tam={24} /> {g.criadoPor}
+                </div>
+                <button onClick={() => setAgenteSelecionado(g)} className="press lift" style={{ display: "flex", alignItems: "center", gap: 5, background: T.surface, border: `1px solid ${T.linha}`, borderRadius: 9, padding: "7px 13px", fontSize: 12, fontWeight: 700, color: T.azulEscuro, cursor: "pointer" }}>
+                  Abrir <ChevronRight size={13} />
+                </button>
               </div>
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 5 }}>{g.nome}</div>
-            <div style={{ fontSize: 12.5, color: T.cinza, lineHeight: 1.55, marginBottom: 12, flex: 1 }}>{g.objetivo}</div>
-            <div style={{ fontSize: 11.5, background: T.azulTint, borderRadius: 10, padding: "9px 12px", marginBottom: 13, color: T.azulEscuro, lineHeight: 1.5 }}>
-              <strong>Quando usar:</strong> {g.quando}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: T.cinza }}>
-                <Avatar nome={g.responsavel} tam={24} /> {g.responsavel}
-              </div>
-              <button className="press lift" style={{ display: "flex", alignItems: "center", gap: 5, background: T.surface, border: `1px solid ${T.linha}`, borderRadius: 9, padding: "7px 13px", fontSize: 12, fontWeight: 700, color: T.azulEscuro, cursor: "pointer" }}>
-                Abrir <ExternalLink size={12} />
-              </button>
-            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DrawerAgente({ agente, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.42)", display: "flex", justifyContent: "flex-end", zIndex: 100, animation: "veil .18s ease both" }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "min(460px,100%)", background: T.bg, height: "100%", overflowY: "auto", animation: "slideDrawer .28s cubic-bezier(.2,.7,.3,1) both", boxShadow: "-16px 0 48px rgba(17,29,48,.18)" }}>
+        <div style={{ background: T.surface, borderBottom: `1px solid ${T.linha}`, padding: "22px 26px", position: "sticky", top: 0, zIndex: 2 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: T.chumbo, display: "flex", alignItems: "center", justifyContent: "center" }}><LogoFIUS size={20} cor={T.azul} /></div>
+            <button onClick={onClose} className="press" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza }}><X size={16} /></button>
           </div>
-        ))}
+          <h2 className="bracket" style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.35 }}>{agente.nome}</h2>
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <Badge texto={agente.nucleo} cor={T.cinza} />
+            <Badge texto="Em Uso" cor={T.verde} />
+          </div>
+        </div>
+        <div style={{ padding: "22px 26px", display: "grid", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>O que faz</div>
+            <div className="card" style={{ padding: 14, fontSize: 13, lineHeight: 1.55 }}>{agente.objetivo}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Quem criou</div>
+            <div className="card" style={{ padding: 14, fontSize: 13 }}>{agente.criadoPor}</div>
+          </div>
+          {agente.equipe && agente.equipe !== agente.criadoPor && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Quem ajudou a construir</div>
+              <div className="card" style={{ padding: 14, fontSize: 13 }}>{agente.equipe}</div>
+            </div>
+          )}
+          <div className="card" style={{ padding: 15, fontSize: 12, color: T.cinza, display: "flex", gap: 10, lineHeight: 1.55, border: `1px dashed ${T.linha}` }}>
+            <Link2 size={14} color={T.azul} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>Sem link direto cadastrado ainda para este agente. Assim que houver uma URL real (Espaider, Kurier, iManage etc.), este painel passa a abrir o agente diretamente.</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1005,6 +1065,9 @@ function TelaTreinamentos() {
     <div>
       <Cabecalho eyebrow="Conhecimento" titulo="Treinamentos"
         sub="Da base de IA aos POPs — tudo com instrutor, formato e duração definidos." />
+      {SEED_TREINAMENTOS.length === 0 ? (
+        <Vazio titulo="Nenhum treinamento publicado ainda" sub="Quando o time gravar ou subir o primeiro material, ele aparece aqui." />
+      ) : (
       <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 14 }}>
         {SEED_TREINAMENTOS.map(t => {
           const M = meta[t.formato] || meta.pdf; const Ic = M.ic;
@@ -1032,6 +1095,7 @@ function TelaTreinamentos() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -1075,7 +1139,14 @@ function TelaDocs() {
 }
 
 /* ══════════════════ COMUNIDADE ══════════════════ */
-function TelaComunidade({ likes, toggleLike }) {
+function TelaComunidade({ posts, publicarPost, likes, toggleLike }) {
+  const [rascunho, setRascunho] = useState("");
+  const enviar = () => {
+    const texto = rascunho.trim();
+    if (!texto) return;
+    publicarPost(texto);
+    setRascunho("");
+  };
   return (
     <div>
       <Cabecalho eyebrow="Time & gestão" titulo="Comunidade"
@@ -1083,13 +1154,17 @@ function TelaComunidade({ likes, toggleLike }) {
       <div style={{ maxWidth: 640 }}>
         <div className="card" style={{ padding: "14px 18px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center" }}>
           <Avatar nome="Isa" tam={32} />
-          <div style={{ flex: 1, fontSize: 13, color: T.cinzaClaro, background: T.bg, borderRadius: 20, padding: "10px 16px", cursor: "text" }}>
-            Compartilhe uma dica, automação ou novidade…
-          </div>
-          <button className="press" style={{ background: T.azul, color: "white", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Publicar</button>
+          <input value={rascunho} onChange={e => setRascunho(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") enviar(); }}
+            placeholder="Compartilhe uma dica, automação ou novidade…"
+            style={{ flex: 1, fontSize: 13, color: T.chumbo, background: T.bg, border: `1px solid ${T.linha}`, borderRadius: 20, padding: "10px 16px", transition: "border-color .15s, box-shadow .15s" }} />
+          <button onClick={enviar} disabled={!rascunho.trim()} className="press" style={{ background: rascunho.trim() ? T.azul : T.linha, color: "white", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12.5, fontWeight: 700, cursor: rascunho.trim() ? "pointer" : "not-allowed" }}>Publicar</button>
         </div>
+        {posts.length === 0 ? (
+          <Vazio titulo="Nenhum post ainda" sub="Seja a primeira pessoa a compartilhar algo com o time." />
+        ) : (
         <div className="stagger" style={{ display: "grid", gap: 13 }}>
-          {SEED_FEED.map(post => {
+          {posts.map(post => {
             const curtido = likes[post.id];
             return (
               <div key={post.id} className="card" style={{ padding: "18px 20px" }}>
@@ -1111,6 +1186,7 @@ function TelaComunidade({ likes, toggleLike }) {
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );
@@ -1118,10 +1194,11 @@ function TelaComunidade({ likes, toggleLike }) {
 
 /* ══════════════════ INDICADORES ══════════════════ */
 function TelaIndicadores({ dores, ideias, projetos, prompts }) {
-  const conversao = Math.round((projetos.length / dores.length) * 100);
+  const doresComProjeto = new Set(projetos.filter(p => p.dorId).map(p => p.dorId)).size;
+  const conversao = dores.length ? Math.round((doresComProjeto / dores.length) * 100) : 0;
   const metricas = [
     { label: "Dores registradas", valor: dores.length, meta: 12, cor: T.azul },
-    { label: "Ideias ancoradas", valor: ideias.length, meta: 10, cor: T.amarelo },
+    { label: "Ideias no banco", valor: ideias.length, meta: 10, cor: T.amarelo },
     { label: "Projetos em curso", valor: projetos.length, meta: 5, cor: T.verde },
     { label: "Prompts no acervo", valor: prompts.length, meta: 15, cor: T.roxo },
     { label: "Treinamentos publicados", valor: SEED_TREINAMENTOS.length, meta: 8, cor: T.laranja },
@@ -1143,7 +1220,7 @@ function TelaIndicadores({ dores, ideias, projetos, prompts }) {
             <text x="55" y="68" textAnchor="middle" fontSize="8" fontWeight="700" fill={T.cinzaClaro}>DOR → PROJETO</text>
           </svg>
           <div style={{ fontSize: 13.5, fontWeight: 800, marginTop: 8 }}>Taxa de conversão</div>
-          <div style={{ fontSize: 12, color: T.cinza, marginTop: 4, lineHeight: 1.5 }}>{projetos.length} de {dores.length} dores do radar já têm projeto em andamento.</div>
+          <div style={{ fontSize: 12, color: T.cinza, marginTop: 4, lineHeight: 1.5 }}>{doresComProjeto} de {dores.length} dores do radar já têm projeto vinculado.</div>
         </div>
         <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 12 }}>
           {metricas.map(m => (
@@ -1162,18 +1239,22 @@ function TelaIndicadores({ dores, ideias, projetos, prompts }) {
 }
 
 /* ══════════════════ ADMINISTRAÇÃO ══════════════════ */
+/* Pessoas reais citadas na planilha (quem deu ideia / quem ajudou a construir os agentes). */
+const usuarios = [
+  { nome: "Isabella Vieira Chaves", papel: "Administradora" },
+  { nome: "Bruna", papel: "Membro" },
+  { nome: "Clara", papel: "Membro" },
+  { nome: "Lilian", papel: "Membro" },
+  { nome: "Beatris", papel: "Membro" },
+  { nome: "Rebeca", papel: "Membro" },
+  { nome: "Júlia", papel: "Membro" },
+  { nome: "Jackeline", papel: "Membro" },
+  { nome: "Eve", papel: "Membro" },
+  { nome: "Daniela", papel: "Membro" },
+  { nome: "Raíssa", papel: "Membro" },
+];
 function TelaAdmin() {
-  const usuarios = [
-    { nome: "Isabella Vieira Chaves", papel: "Administradora", status: "Ativa" },
-    { nome: "Bruna", papel: "Editora", status: "Ativa" },
-    { nome: "Clara", papel: "Editora", status: "Ativa" },
-    { nome: "Lilian", papel: "Colaboradora", status: "Ativa" },
-  ];
-  const trilha = [
-    { quando: "02/07 · 09:12", quem: "Isa", oque: "atualizou o prompt “Síntese de ata de audiência” (v2)" },
-    { quando: "01/07 · 15:30", quem: "Bruna", oque: "publicou o POP de Triagem de Publicações" },
-    { quando: "28/06 · 11:47", quem: "Clara", oque: "cadastrou o GPT “Revisor de POPs”" },
-  ];
+  const trilha = [];
   return (
     <div>
       <Cabecalho eyebrow="Time & gestão" titulo="Administração"
@@ -1189,14 +1270,16 @@ function TelaAdmin() {
                   <div style={{ fontSize: 13.5, fontWeight: 700 }}>{u.nome}</div>
                   <div style={{ fontSize: 11.5, color: T.cinzaClaro }}>Controladoria Jurídica</div>
                 </div>
-                <Badge texto={u.papel} cor={u.papel === "Administradora" ? T.azul : u.papel === "Editora" ? T.roxo : T.cinza} />
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.verde }} title="Ativa" />
+                <Badge texto={u.papel} cor={u.papel === "Administradora" ? T.azul : T.cinza} />
               </div>
             ))}
           </div>
         </div>
         <div>
           <SubTitulo>Trilha de auditoria</SubTitulo>
+          {trilha.length === 0 ? (
+            <Vazio titulo="Sem trilha de auditoria ainda" sub="As ações reais de cada pessoa (editar prompt, cadastrar agente, mover projeto) aparecerão aqui conforme o Hub for usado." />
+          ) : (
           <div className="card" style={{ padding: "18px 20px" }}>
             {trilha.map((a, i) => (
               <div key={i} style={{ display: "flex", gap: 12, paddingBottom: i < trilha.length - 1 ? 16 : 0, position: "relative" }}>
@@ -1209,9 +1292,10 @@ function TelaAdmin() {
               </div>
             ))}
           </div>
+          )}
           <div className="card" style={{ marginTop: 12, padding: 15, fontSize: 12, color: T.cinza, lineHeight: 1.55, border: `1px dashed ${T.linha}`, display: "flex", gap: 10 }}>
             <Users size={14} color={T.azul} style={{ flexShrink: 0, marginTop: 2 }} />
-            <span>Papéis: <strong style={{ color: T.chumbo }}>Administradora</strong> gerencia tudo · <strong style={{ color: T.chumbo }}>Editora</strong> cria e edita conteúdo · <strong style={{ color: T.chumbo }}>Colaboradora</strong> registra dores, comenta e favorita.</span>
+            <span>Papéis: <strong style={{ color: T.chumbo }}>Administradora</strong> gerencia tudo · <strong style={{ color: T.chumbo }}>Membro</strong> registra dores, comenta e favorita. Pessoas listadas com base nas autorias reais da planilha de inovação.</span>
           </div>
         </div>
       </div>
