@@ -1,0 +1,1220 @@
+import { useState, useMemo, useEffect, useRef } from "react";
+import {
+  Home, Flame, Lightbulb, Rocket, Bot, MessageSquareText, GraduationCap,
+  FolderOpen, BarChart3, Settings, Search, Plus, Copy, Check, Star,
+  Heart, MessageCircle, ChevronRight, X, ArrowRight, Link2,
+  FileText, Video, Presentation, ExternalLink, TrendingUp, Sparkles,
+  Command, Clock, Users, Zap
+} from "lucide-react";
+
+/* ══════════════════════════════════════════════════════════════
+   CJ INOVA · Design System v2
+   Marca: brandbook FIUS · Assinatura: o colchete do isotipo
+   ("tudo acontece dentro do elemento gráfico")
+   Tipo: Rubik (substituta web da Effra) · números tabulares
+══════════════════════════════════════════════════════════════ */
+const T = {
+  azul: "#009edb", azulEscuro: "#004561", navy: "#21305a", chumbo: "#111d30",
+  cinza: "#6d6e71", cinzaClaro: "#9aa1a9", bg: "#f6f7f9", surface: "#ffffff",
+  linha: "#e8eaee", linhaSoft: "#f0f1f4",
+  amarelo: "#efc517", verde: "#8ebf22", vermelho: "#bb274b", roxo: "#75398e", laranja: "#ea5627",
+  azulTint: "#eaf7fd",
+};
+
+/* ───────── DADOS (fonte: Controle - Inovação Controladoria Jurídica.xlsx) ───────── */
+const SEED_DORES = [
+  { id: "DOR-014", titulo: "Triagem manual de publicações trabalhistas consome 3h/dia", area: "Publicações", intensidade: 5, frequencia: 5, alcance: "Toda a equipe", status: "Em exploração" },
+  { id: "DOR-021", titulo: "Prazos calculados em planilha sem alerta automático", area: "Protocolo", intensidade: 5, frequencia: 4, alcance: "4 analistas", status: "Priorizada" },
+  { id: "DOR-008", titulo: "POPs espalhados em pastas, ninguém acha o mais recente", area: "Geral", intensidade: 3, frequencia: 5, alcance: "Toda a equipe", status: "Em exploração" },
+  { id: "DOR-030", titulo: "Sínteses de audiência refeitas do zero a cada caso", area: "Publicações", intensidade: 4, frequencia: 4, alcance: "6 pessoas", status: "Priorizada" },
+  { id: "DOR-035", titulo: "Sem visão consolidada de volumetria por cliente", area: "Relatório", intensidade: 3, frequencia: 2, alcance: "Coordenação", status: "Registrada" },
+];
+const SEED_IDEIAS = [
+  { id: "IDE-041", dorId: null, nucleo: "Geral", titulo: "Análise Preditiva de Processos", autores: "Bruna e Isa", prioridade: "Alta", notas: "Requer dados históricos robustos" },
+  { id: "IDE-042", dorId: null, nucleo: "Protocolo", titulo: "Checklist de Documentos de Protocolo", autores: "Jackeline, Lilian, Rebeca e Júlia", prioridade: "Alta", notas: "" },
+  { id: "IDE-043", dorId: null, nucleo: "Apoio", titulo: "Acompanhamento de Pauta de Audiências", autores: "Bruna, Isa e Clara", prioridade: "Alta", notas: "Integração com portais dos tribunais" },
+  { id: "IDE-044", dorId: null, nucleo: "Protocolo", titulo: "Robô de Protocolo", autores: "Jackeline e Isabella", prioridade: "Média", notas: "Alta complexidade — múltiplos sistemas" },
+  { id: "IDE-045", dorId: "DOR-014", nucleo: "Publicações", titulo: "Robô de Captura de Publicações e Intimações", autores: "Isa e Clara", prioridade: "Alta", notas: "" },
+  { id: "IDE-046", dorId: null, nucleo: "Publicações", titulo: "Agente de Acompanhamento de E-mail de Intimações", autores: "Clara", prioridade: "Média", notas: "Integração com e-mail corporativo" },
+  { id: "IDE-047", dorId: null, nucleo: "Protocolo", titulo: "Agente de Captura de Prints", autores: "Clara", prioridade: "Baixa", notas: "Suporte a automações de protocolo" },
+  { id: "IDE-048", dorId: null, nucleo: "Apoio", titulo: "Agente para Elaboração de Formulário de RPV", autores: "Rebeca", prioridade: "Média", notas: "Integração com sistema de RPV" },
+  { id: "IDE-049", dorId: null, nucleo: "Protocolo", titulo: "Agente de Captura de Certidões", autores: "Clara", prioridade: "Média", notas: "Consulta a portais de certidões" },
+  { id: "IDE-050", dorId: null, nucleo: "Publicações", titulo: "Agente para Comparação de Publicações Complementares", autores: "Beatris", prioridade: "Média", notas: "" },
+  { id: "IDE-051", dorId: null, nucleo: "Apoio", titulo: "Agente para Elaboração de Guias", autores: "Clara", prioridade: "Média", notas: "" },
+  { id: "IDE-052", dorId: "DOR-021", nucleo: "Publicações", titulo: "Agente de Cobrança Diária de Prazos Fatais e Antigos", autores: "Isa", prioridade: "Alta", notas: "Ideia da Isa; rascunhos de e-mail por núcleo" },
+  { id: "IDE-053", dorId: null, nucleo: "Protocolo", titulo: "Conferência Pré-Protocolo por Horário e Fatalidade", autores: "Isa", prioridade: "Alta", notas: "Ideia da Isa; valida horário, fatalidade e campos obrigatórios" },
+  { id: "IDE-054", dorId: null, nucleo: "Protocolo", titulo: "Agente de Conferência de Recibos de Protocolo", autores: "Isa", prioridade: "Média", notas: "Ideia da Isa; conferência de recibos e inconsistências" },
+  { id: "IDE-055", dorId: null, nucleo: "Cadastro", titulo: "Agente de Intake de Cadastro de Processos", autores: "Isa", prioridade: "Alta", notas: "Ideia da Isa; ficha de abertura/atualização de pasta" },
+];
+const SEED_PROJETOS = [
+  { id: "PRJ-010", dorId: null, nucleo: "Cadastro", titulo: "Conferência de Cadastros x Publicações", equipe: "Isabella", prioridade: "Alta", previsao: "jun/2026", fase: "Em Teste" },
+  { id: "PRJ-011", dorId: null, nucleo: "Cadastro", titulo: "Conferência de Abertura de Pasta", equipe: "Isabella", prioridade: "Média", previsao: "jun/2026", fase: "Em Teste" },
+  { id: "PRJ-012", dorId: null, nucleo: "Geral", titulo: "Assistente de Dúvidas da Controladoria Jurídica", equipe: "Bruna, Clara e Eve", prioridade: "Média", previsao: "jul/2026", fase: "Em Teste" },
+  { id: "PRJ-013", dorId: null, nucleo: "Publicações", titulo: "Agente Comparativo Complementares AASP x Principais", equipe: "Beatris", prioridade: "Média", previsao: "a definir", fase: "Em Teste" },
+  { id: "PRJ-014", dorId: null, nucleo: "Relatório", titulo: "Conferência de Relatórios Excel x ESPAIDER", equipe: "Clara e Eve", prioridade: "Alta", previsao: "jul/2026", fase: "Em Desenvolvimento" },
+  { id: "PRJ-015", dorId: null, nucleo: "Relatório", titulo: "Conferência de Relatórios Auditoria x Mensal", equipe: "Clara e Eve", prioridade: "Alta", previsao: "jul/2026", fase: "Em Desenvolvimento" },
+  { id: "PRJ-016", dorId: null, nucleo: "Apoio", titulo: "Conferências Termos Kurier", equipe: "Bruna e Isa", prioridade: "Média", previsao: "jul/2026", fase: "Em Desenvolvimento" },
+  { id: "PRJ-017", dorId: null, nucleo: "Apoio", titulo: "Monitoramento Suplementação OAB", equipe: "Beatris, Jackeline e Isa", prioridade: "Alta", previsao: "jul/2026", fase: "Em Desenvolvimento" },
+  { id: "PRJ-018", dorId: null, nucleo: "Geral", titulo: "Elaboração de Peça para Habilitação", equipe: "Clara", prioridade: "Média", previsao: "jul/2026", fase: "Em Desenvolvimento" },
+  { id: "PRJ-019", dorId: null, nucleo: "Protocolo", titulo: "Agente Auditor de PDF Jurídico", equipe: "Rebeca e Júlia", prioridade: "Alta", previsao: "jun/2026", fase: "Em Desenvolvimento" },
+  { id: "PRJ-020", dorId: "DOR-035", nucleo: "Geral", titulo: "Dashboard de Cobrança de Requisições Pendentes", equipe: "Beatris", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
+  { id: "PRJ-021", dorId: null, nucleo: "Relatório", titulo: "Dashboard de Relatórios", equipe: "Eve e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
+  { id: "PRJ-022", dorId: null, nucleo: "Relatório", titulo: "Volumetria Diária de Relatórios", equipe: "Eve e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
+  { id: "PRJ-023", dorId: null, nucleo: "Apoio", titulo: "Atualização de Procurações e Substabelecimentos", equipe: "Jackeline e Isabella", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
+  { id: "PRJ-024", dorId: null, nucleo: "Publicações", titulo: "Conferência de Publicações sem Vínculo", equipe: "Bruna e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
+  { id: "PRJ-025", dorId: null, nucleo: "Apoio", titulo: "Contratação de Correspondentes", equipe: "Bruna e Isa", prioridade: "Média", previsao: "a definir", fase: "Em Desenvolvimento" },
+];
+const SEED_PROMPTS = [
+  { id: 1, titulo: "Síntese de ata de audiência trabalhista", categoria: "Trabalhista", ferramenta: "Claude", autor: "Isa", data: "02/07/2026", tags: ["audiência", "síntese"], avaliacao: 4.8, usos: 47, texto: "Você é um analista jurídico da Controladoria. Analise a ata de audiência anexa e produza uma síntese seguindo o modelo padronizado: partes, ocorrências, decisões, prazos apontados e providências. Use linguagem objetiva e o padrão de nomenclatura Espaider." },
+  { id: 2, titulo: "Conferência de prazo processual", categoria: "Controle", ferramenta: "Claude", autor: "Bruna", data: "28/06/2026", tags: ["prazo", "conferência"], avaliacao: 4.5, usos: 32, texto: "A partir da publicação abaixo, identifique: tipo de ato, data de disponibilização, início da contagem, prazo aplicável (CLT/CPC) e data fatal. Aponte qualquer ambiguidade que exija conferência humana." },
+  { id: 3, titulo: "Resumo executivo de POP", categoria: "Conhecimento", ferramenta: "Copilot", autor: "Clara", data: "20/06/2026", tags: ["POP", "resumo"], avaliacao: 4.2, usos: 18, texto: "Resuma o POP anexo em no máximo 10 linhas, destacando: objetivo, quem executa, gatilho de início, passos críticos e ponto de controle. Formato: tópicos curtos." },
+  { id: 4, titulo: "E-mail de follow-up para cliente", categoria: "Comunicação", ferramenta: "ChatGPT", autor: "Lilian", data: "15/06/2026", tags: ["e-mail", "cliente"], avaliacao: 4.0, usos: 25, texto: "Redija um e-mail de atualização processual para o cliente, em linguagem simples e sem juridiquês, informando o andamento abaixo. Tom FIUS: descomplicado, seguro e gentil." },
+];
+const SEED_GPTS = [
+  { id: 1, nome: "Publicações Trabalhistas CJ", objetivo: "Analisar publicações e atas, gerar sínteses padronizadas e apontar prazos", quando: "Sempre que chegar publicação trabalhista para triagem", responsavel: "Isa", versao: "v2.3", ferramenta: "Claude Skill" },
+  { id: 2, nome: "Assistente de Volumetria", objetivo: "Consultar dados consolidados de volumetria por cliente", quando: "Fechamento mensal e reuniões de coordenação", responsavel: "Bruna", versao: "v1.1", ferramenta: "GPT" },
+  { id: 3, nome: "Revisor de POPs", objetivo: "Auditar consistência e formatação de procedimentos", quando: "Antes de publicar ou atualizar qualquer POP", responsavel: "Clara", versao: "v1.0", ferramenta: "GPT" },
+];
+const SEED_TREINAMENTOS = [
+  { id: 1, titulo: "Fundamentos de IA para o Jurídico", categoria: "IA", instrutor: "Isa", formato: "video", duracao: "45 min", desc: "O que é um LLM, o que ele faz bem e onde exige conferência humana." },
+  { id: 2, titulo: "Como usar a Biblioteca de Prompts", categoria: "Ferramentas", instrutor: "Isa", formato: "video", duracao: "20 min", desc: "Encontrar, adaptar e avaliar prompts do acervo da CJ." },
+  { id: 3, titulo: "POP de Triagem de Publicações", categoria: "Processos", instrutor: "Bruna", formato: "pdf", duracao: "leitura 15 min", desc: "Procedimento oficial passo a passo com pontos de controle." },
+  { id: 4, titulo: "Pensamento crítico na era da IA", categoria: "Competências", instrutor: "Lilian", formato: "apresentacao", duracao: "30 min", desc: "Inovação responsável: manter as habilidades humanas afiadas." },
+];
+const SEED_DOCS = [
+  { id: 1, nome: "POP — Triagem de Publicações Trabalhistas", pasta: "POPs", tipo: "PDF", atualizado: "01/07/2026", autor: "Bruna" },
+  { id: 2, nome: "Fluxograma — Ciclo da Dor (CJ INOVA)", pasta: "Fluxogramas", tipo: "PDF", atualizado: "24/06/2026", autor: "Isa" },
+  { id: 3, nome: "Modelo — Síntese de Audiência", pasta: "Modelos", tipo: "DOCX", atualizado: "18/06/2026", autor: "Isa" },
+  { id: 4, nome: "Manual — Nomenclatura Espaider", pasta: "Manuais", tipo: "PDF", atualizado: "10/06/2026", autor: "Clara" },
+  { id: 5, nome: "Template — Card de Projeto (Planner)", pasta: "Templates", tipo: "PPTX", atualizado: "05/06/2026", autor: "Isa" },
+];
+const SEED_FEED = [
+  { id: 1, autor: "Bruna", cargo: "Analista Jurídica", tempo: "há 2h", texto: "Dica: no prompt de conferência de prazo, colar a publicação inteira (com cabeçalho do diário) melhora muito a identificação do tipo de ato. Testei em 15 casos hoje. 🚀", likes: 8, comentarios: 3 },
+  { id: 2, autor: "Isa", cargo: "Analista Jurídica · CJ INOVA", tempo: "há 1 dia", texto: "Nova versão da skill de Publicações Trabalhistas no ar (v2.3)! Agora ela aponta o prazo com base na planilha oficial. Quem usar essa semana, registra o feedback na página da GPT. 💙", likes: 12, comentarios: 5 },
+  { id: 3, autor: "Lilian", cargo: "Analista Jurídica", tempo: "há 2 dias", texto: "Compartilhando o material da conversa sobre inovação responsável: automatizar sim, mas sem terceirizar o nosso senso crítico. O treinamento está na biblioteca. Vamos juntos?", likes: 15, comentarios: 7 },
+];
+const ATIVIDADES = [
+  { quando: "hoje, 09:12", quem: "Isa", acao: "atualizou o prompt", alvo: "Síntese de ata de audiência", tipo: "prompt" },
+  { quando: "ontem, 16:40", quem: "Bruna", acao: "moveu para Desenvolvimento", alvo: "PRJ-016 · Conferências Termos Kurier", tipo: "projeto" },
+  { quando: "ontem, 11:05", quem: "Clara", acao: "registrou a ideia", alvo: "IDE-043 · Acompanhamento de Pauta de Audiências", tipo: "ideia" },
+  { quando: "28/06", quem: "Lilian", acao: "publicou na comunidade", alvo: "Inovação responsável", tipo: "post" },
+];
+
+const AREAS = ["Todas", "Publicações", "Apoio", "Geral", "Relatório", "Protocolo", "Cadastro"];
+const scoreDor = (d) => d.intensidade * d.frequencia;
+const heatColor = (s) => s >= 20 ? T.vermelho : s >= 12 ? T.laranja : T.verde;
+const corAutor = { Isa: T.azul, Bruna: T.roxo, Clara: T.verde, Lilian: T.laranja, Isabella: T.azul };
+
+const NAV = [
+  { grupo: "Visão geral", itens: [{ id: "home", nome: "Painel Geral", icone: Home }] },
+  { grupo: "Fluxo da dor", itens: [
+    { id: "dores", nome: "Radar de Dores", icone: Flame },
+    { id: "ideias", nome: "Banco de Ideias", icone: Lightbulb },
+    { id: "projetos", nome: "Projetos", icone: Rocket },
+  ]},
+  { grupo: "Acervo de IA", itens: [
+    { id: "prompts", nome: "Biblioteca de Prompts", icone: Sparkles },
+    { id: "gpts", nome: "GPTs & Skills", icone: Bot },
+  ]},
+  { grupo: "Conhecimento", itens: [
+    { id: "treinamentos", nome: "Treinamentos", icone: GraduationCap },
+    { id: "docs", nome: "Documentos", icone: FolderOpen },
+  ]},
+  { grupo: "Time & gestão", itens: [
+    { id: "comunidade", nome: "Comunidade", icone: MessageSquareText },
+    { id: "indicadores", nome: "Indicadores", icone: BarChart3 },
+    { id: "admin", nome: "Administração", icone: Settings },
+  ]},
+];
+
+/* ══════════════════ APP ══════════════════ */
+export default function HubCJInova() {
+  const [tela, setTela] = useState("home");
+  const [dores, setDores] = useState(SEED_DORES);
+  const [ideias] = useState(SEED_IDEIAS);
+  const [projetos] = useState(SEED_PROJETOS);
+  const [prompts] = useState(SEED_PROMPTS);
+  const [favoritos, setFavoritos] = useState([1]);
+  const [copiado, setCopiado] = useState(null);
+  const [likes, setLikes] = useState({});
+  const [dorSelecionada, setDorSelecionada] = useState(null);
+  const [modalDor, setModalDor] = useState(false);
+  const [paleta, setPaleta] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    const h = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPaleta(p => !p); }
+      if (e.key === "Escape") { setPaleta(false); setDorSelecionada(null); setModalDor(false); }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  const notificar = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2400); };
+  const ideiasDe = (id) => ideias.filter(i => i.dorId === id);
+  const projetosDe = (id) => projetos.filter(p => p.dorId === id);
+  const copiarPrompt = (p) => {
+    try { navigator.clipboard?.writeText(p.texto); } catch (e) {}
+    setCopiado(p.id); setTimeout(() => setCopiado(null), 1500);
+    notificar("Prompt copiado para a área de transferência");
+  };
+  const toggleFav = (id) => setFavoritos(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
+  const toggleLike = (id) => setLikes(l => ({ ...l, [id]: !l[id] }));
+
+  const props = { dores, ideias, projetos, prompts, favoritos, toggleFav, copiado, copiarPrompt, likes, toggleLike, ideiasDe, projetosDe, setDorSelecionada, setModalDor, setTela, notificar };
+
+  return (
+    <div style={{ fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", background: T.bg, minHeight: "100vh", display: "flex", color: T.chumbo }}>
+      <EstilosGlobais />
+      <Sidebar tela={tela} setTela={setTela} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Topbar abrirPaleta={() => setPaleta(true)} setModalDor={setModalDor} />
+        <main key={tela} className="pagina" style={{ flex: 1, padding: "26px 34px 48px", maxWidth: 1180, width: "100%", margin: "0 auto" }}>
+          {tela === "home" && <TelaHome {...props} />}
+          {tela === "dores" && <TelaDores {...props} />}
+          {tela === "ideias" && <TelaIdeias {...props} />}
+          {tela === "projetos" && <TelaProjetos {...props} />}
+          {tela === "prompts" && <TelaPrompts {...props} />}
+          {tela === "gpts" && <TelaGPTs />}
+          {tela === "treinamentos" && <TelaTreinamentos />}
+          {tela === "docs" && <TelaDocs />}
+          {tela === "comunidade" && <TelaComunidade {...props} />}
+          {tela === "indicadores" && <TelaIndicadores {...props} />}
+          {tela === "admin" && <TelaAdmin />}
+        </main>
+      </div>
+
+      {paleta && <Paleta fechar={() => setPaleta(false)} setTela={setTela} dores={dores} ideias={ideias} projetos={projetos} prompts={prompts} />}
+      {dorSelecionada && <DrawerDor dor={dorSelecionada} ideias={ideiasDe(dorSelecionada.id)} projetos={projetosDe(dorSelecionada.id)} onClose={() => setDorSelecionada(null)} />}
+      {modalDor && <ModalNovaDor onSalvar={(nova) => { setDores(d => [...d, nova]); setModalDor(false); notificar(`${nova.id} registrada no radar`); }} onClose={() => setModalDor(false)} proximo={`DOR-0${36 + dores.length - 5}`} />}
+      {toast && <Toast msg={toast} />}
+    </div>
+  );
+}
+
+function EstilosGlobais() {
+  return (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap');
+      * { box-sizing: border-box; margin: 0; }
+      button, input, select, textarea { font-family: inherit; }
+      .num { font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+      @keyframes slideDrawer { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+      @keyframes veil { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes growX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+      @keyframes pop { 0% { transform: scale(1); } 45% { transform: scale(1.35); } 100% { transform: scale(1); } }
+      @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+      @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(0,158,219,.35);} 60% { box-shadow: 0 0 0 7px rgba(0,158,219,0);} }
+
+      .pagina { animation: fadeUp .32s cubic-bezier(.2,.7,.3,1) both; }
+      .stagger > * { animation: fadeUp .4s cubic-bezier(.2,.7,.3,1) both; }
+      .stagger > *:nth-child(1){animation-delay:.02s} .stagger > *:nth-child(2){animation-delay:.06s}
+      .stagger > *:nth-child(3){animation-delay:.10s} .stagger > *:nth-child(4){animation-delay:.14s}
+      .stagger > *:nth-child(5){animation-delay:.18s} .stagger > *:nth-child(6){animation-delay:.22s}
+      .stagger > *:nth-child(7){animation-delay:.26s}
+
+      .card { background: ${T.surface}; border: 1px solid ${T.linha}; border-radius: 14px; box-shadow: 0 1px 2px rgba(17,29,48,.04); }
+      .lift { transition: transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .18s, border-color .18s; }
+      .lift:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(17,29,48,.09); border-color: #d8dce2; }
+      .press:active { transform: scale(.985); }
+
+      .bar-fill { transform-origin: left; animation: growX .9s cubic-bezier(.2,.7,.3,1) .15s both; }
+      .heart-pop { animation: pop .35s ease; }
+
+      /* Assinatura FIUS: o isotipo real (F/U entrelaçados) como acento tipográfico */
+      .bracket { position: relative; padding-left: 17px; }
+      .bracket::before { content:""; position:absolute; left:0; top:1px; bottom:1px; width:12px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 50'%3E%3Cpath d='M2 2H29V11H11V48H2V2Z' fill='%23009edb'/%3E%3Cpath d='M40 2V48H13V39H31V2H40Z' fill='%23009edb'/%3E%3C/svg%3E") no-repeat center / contain; }
+      .bracket-fechado { position: relative; padding-right: 17px; }
+      .bracket-fechado::after { content:""; position:absolute; right:0; top:1px; bottom:1px; width:12px; transform: scaleX(-1);
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 50'%3E%3Cpath d='M2 2H29V11H11V48H2V2Z' fill='%23009edb'/%3E%3Cpath d='M40 2V48H13V39H31V2H40Z' fill='%23009edb'/%3E%3C/svg%3E") no-repeat center / contain; }
+
+      .nav-btn { transition: background .14s, color .14s; border-radius: 10px; position: relative; }
+      .nav-btn:hover { background: ${T.linhaSoft}; }
+      .nav-ativo { background: ${T.azulTint} !important; color: ${T.azulEscuro} !important; font-weight: 600; }
+      .nav-ativo::before { content:""; position:absolute; left:-12px; top:8px; bottom:8px; width:6px;
+        border-left:3px solid ${T.azul}; border-top:3px solid ${T.azul}; border-bottom:3px solid ${T.azul}; }
+
+      input:focus, textarea:focus { outline: none; border-color: ${T.azul} !important; box-shadow: 0 0 0 3px rgba(0,158,219,.14); }
+      button:focus-visible { outline: 2px solid ${T.azul}; outline-offset: 2px; }
+
+      .chip { transition: all .13s; cursor: pointer; user-select: none; }
+      .chip:hover { border-color: ${T.azul} !important; color: ${T.azulEscuro} !important; }
+
+      .linha-doc { transition: background .13s; }
+      .linha-doc:hover { background: ${T.linhaSoft}; }
+      .linha-doc .acao-doc { opacity: 0; transition: opacity .15s; }
+      .linha-doc:hover .acao-doc { opacity: 1; }
+
+      ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: #d3d7dd; border-radius: 4px; }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+    `}</style>
+  );
+}
+
+/* ══════════════════ ESTRUTURA ══════════════════ */
+function Sidebar({ tela, setTela }) {
+  return (
+    <aside style={{ width: 248, background: T.surface, borderRight: `1px solid ${T.linha}`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
+      <div style={{ padding: "20px 22px 16px", display: "flex", alignItems: "center", gap: 11 }}>
+        <div style={{ width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <LogoFIUS size={28} cor={T.azul} />
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-.02em" }}>CJ INOVA</div>
+          <div style={{ fontSize: 9.5, color: T.cinzaClaro, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" }}>Controladoria Jurídica</div>
+        </div>
+      </div>
+      <nav style={{ padding: "6px 16px", flex: 1, overflowY: "auto" }}>
+        {NAV.map(g => (
+          <div key={g.grupo} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".1em", textTransform: "uppercase", padding: "8px 12px 5px" }}>{g.grupo}</div>
+            {g.itens.map(m => {
+              const Ic = m.icone; const ativo = tela === m.id;
+              return (
+                <button key={m.id} onClick={() => setTela(m.id)} className={`nav-btn press ${ativo ? "nav-ativo" : ""}`}
+                  style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 12px", border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 500, textAlign: "left", background: "transparent", color: T.cinza, marginBottom: 1 }}>
+                  <Ic size={17} color={ativo ? T.azul : T.cinzaClaro} strokeWidth={ativo ? 2.2 : 2} />
+                  {m.nome}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+      <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.linha}`, display: "flex", alignItems: "center", gap: 11 }}>
+        <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.navy, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700 }}>IV</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Isabella Vieira Chaves</div>
+          <div style={{ fontSize: 10.5, color: T.cinzaClaro }}>Administradora</div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function Topbar({ abrirPaleta, setModalDor }) {
+  return (
+    <header style={{ height: 58, background: "rgba(255,255,255,.85)", backdropFilter: "blur(8px)", borderBottom: `1px solid ${T.linha}`, display: "flex", alignItems: "center", gap: 14, padding: "0 34px", position: "sticky", top: 0, zIndex: 40 }}>
+      <button onClick={abrirPaleta} className="press" style={{ flex: "0 1 420px", display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.bg, cursor: "pointer", color: T.cinzaClaro, fontSize: 13 }}>
+        <Search size={15} />
+        <span style={{ flex: 1, textAlign: "left" }}>Buscar em todo o Hub…</span>
+        <kbd style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700, color: T.cinza, background: T.surface, border: `1px solid ${T.linha}`, borderRadius: 5, padding: "2px 6px" }}><Command size={10} />K</kbd>
+      </button>
+      <div style={{ flex: 1 }} />
+      <span style={{ fontSize: 12, color: T.cinzaClaro, display: "flex", alignItems: "center", gap: 6 }}><Clock size={13} /> qui, 09 jul 2026</span>
+      <button onClick={() => setModalDor(true)} className="press lift" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: "none", background: T.azul, color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+        <Plus size={15} strokeWidth={2.6} /> Registrar dor
+      </button>
+    </header>
+  );
+}
+
+/* ══════════════════ COMPONENTES DA BIBLIOTECA ══════════════════ */
+function Cabecalho({ eyebrow, titulo, sub, extra }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, marginBottom: 22, flexWrap: "wrap" }}>
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: T.azul, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 5 }}>{eyebrow}</div>
+        <h1 className="bracket" style={{ fontSize: 23, fontWeight: 800, letterSpacing: "-.02em" }}>{titulo}</h1>
+        {sub && <p style={{ fontSize: 13.5, color: T.cinza, marginTop: 6, maxWidth: 620, lineHeight: 1.55 }}>{sub}</p>}
+      </div>
+      {extra}
+    </div>
+  );
+}
+
+function LogoFIUS({ size = 28, cor = T.azul }) {
+  const altura = Math.round(size * 50 / 42);
+  return (
+    <svg width={size} height={altura} viewBox="0 0 42 50" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M2 2H29V11H11V48H2V2Z" fill={cor} />
+      <path d="M40 2V48H13V39H31V2H40Z" fill={cor} />
+    </svg>
+  );
+}
+
+function Badge({ texto, cor, solido }) {
+  return <span style={{ fontSize: 11, fontWeight: 700, padding: "3.5px 10px", borderRadius: 20, background: solido ? cor : cor + "1c", color: solido ? "white" : cor, whiteSpace: "nowrap" }}>{texto}</span>;
+}
+
+function Avatar({ nome, tam = 34 }) {
+  const chave = nome.split(" ")[0] === "Isabella" ? "Isa" : nome.split(" ")[0];
+  return <div style={{ width: tam, height: tam, borderRadius: "50%", background: corAutor[chave] || T.navy, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: tam * .38, fontWeight: 700, flexShrink: 0 }}>{nome[0]}</div>;
+}
+
+function Chip({ ativo, onClick, children }) {
+  return (
+    <button onClick={onClick} className="chip press" style={{ padding: "7px 14px", borderRadius: 20, fontSize: 12.5, fontWeight: 600, border: ativo ? `1px solid ${T.azul}` : `1px solid ${T.linha}`, background: ativo ? T.azul : T.surface, color: ativo ? "white" : T.cinza }}>{children}</button>
+  );
+}
+
+function CampoBusca({ valor, onChange, placeholder }) {
+  return (
+    <div style={{ position: "relative", flex: "1 1 240px" }}>
+      <Search size={15} style={{ position: "absolute", left: 13, top: 12, color: T.cinzaClaro }} />
+      <input value={valor} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{ width: "100%", padding: "10.5px 14px 10.5px 38px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.surface, fontSize: 13, transition: "border-color .15s, box-shadow .15s" }} />
+    </div>
+  );
+}
+
+function Vazio({ titulo, sub, acao }) {
+  return (
+    <div className="card" style={{ padding: "44px 24px", textAlign: "center" }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}><LogoFIUS size={30} cor={T.linha} /></div>
+      <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 4 }}>{titulo}</div>
+      <div style={{ fontSize: 12.5, color: T.cinza, marginBottom: acao ? 16 : 0 }}>{sub}</div>
+      {acao}
+    </div>
+  );
+}
+
+function Barra({ pct, cor, alt = 7 }) {
+  return (
+    <div style={{ height: alt, background: T.linhaSoft, borderRadius: alt / 2, overflow: "hidden" }}>
+      <div className="bar-fill" style={{ width: `${pct}%`, height: "100%", background: cor, borderRadius: alt / 2 }} />
+    </div>
+  );
+}
+
+function Toast({ msg }) {
+  return (
+    <div style={{ position: "fixed", bottom: 26, left: "50%", zIndex: 200, animation: "toastIn .3s cubic-bezier(.2,.7,.3,1) both", transform: "translateX(-50%)", background: T.chumbo, color: "white", borderRadius: 12, padding: "12px 18px", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 9, boxShadow: "0 12px 32px rgba(17,29,48,.3)" }}>
+      <Check size={15} color={T.verde} strokeWidth={3} /> {msg}
+    </div>
+  );
+}
+
+/* ══════════════════ ⌘K PALETA DE COMANDOS ══════════════════ */
+function Paleta({ fechar, setTela, dores, ideias, projetos, prompts }) {
+  const [q, setQ] = useState("");
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.focus(); }, []);
+  const resultados = useMemo(() => {
+    const termo = q.toLowerCase();
+    const navs = NAV.flatMap(g => g.itens).filter(m => m.nome.toLowerCase().includes(termo)).map(m => ({ tipo: "Ir para", nome: m.nome, tela: m.id }));
+    if (termo.length < 2) return navs.slice(0, 6);
+    return [
+      ...navs,
+      ...dores.filter(d => (d.titulo + d.id).toLowerCase().includes(termo)).map(x => ({ tipo: "Dor", nome: `${x.id} · ${x.titulo}`, tela: "dores" })),
+      ...ideias.filter(i => (i.titulo + i.id).toLowerCase().includes(termo)).map(x => ({ tipo: "Ideia", nome: `${x.id} · ${x.titulo}`, tela: "ideias" })),
+      ...projetos.filter(p => (p.titulo + p.id).toLowerCase().includes(termo)).map(x => ({ tipo: "Projeto", nome: `${x.id} · ${x.titulo}`, tela: "projetos" })),
+      ...prompts.filter(p => (p.titulo + p.tags.join(" ")).toLowerCase().includes(termo)).map(x => ({ tipo: "Prompt", nome: x.titulo, tela: "prompts" })),
+      ...SEED_DOCS.filter(d => d.nome.toLowerCase().includes(termo)).map(x => ({ tipo: "Documento", nome: x.nome, tela: "docs" })),
+    ].slice(0, 9);
+  }, [q, dores, ideias, projetos, prompts]);
+
+  return (
+    <div onClick={fechar} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.4)", zIndex: 150, display: "flex", justifyContent: "center", paddingTop: "12vh", animation: "veil .18s ease both" }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "min(580px, 92%)", height: "fit-content", background: T.surface, borderRadius: 16, boxShadow: "0 24px 64px rgba(17,29,48,.28)", overflow: "hidden", animation: "fadeUp .22s cubic-bezier(.2,.7,.3,1) both" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "15px 18px", borderBottom: `1px solid ${T.linha}` }}>
+          <Search size={17} color={T.cinzaClaro} />
+          <input ref={ref} value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar dores, ideias, prompts, documentos ou navegar…"
+            style={{ flex: 1, border: "none", fontSize: 14.5, background: "transparent", boxShadow: "none" }} />
+          <kbd style={{ fontSize: 10.5, fontWeight: 700, color: T.cinzaClaro, border: `1px solid ${T.linha}`, borderRadius: 5, padding: "2px 7px" }}>esc</kbd>
+        </div>
+        <div style={{ padding: 8, maxHeight: 340, overflowY: "auto" }}>
+          {resultados.length === 0 && <div style={{ padding: 20, fontSize: 13, color: T.cinza, textAlign: "center" }}>Nada encontrado para “{q}”. Tente outro termo.</div>}
+          {resultados.map((r, i) => (
+            <button key={i} onClick={() => { setTela(r.tela); fechar(); }} className="nav-btn press"
+              style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "10px 12px", border: "none", background: "transparent", cursor: "pointer", fontSize: 13, textAlign: "left", color: T.chumbo }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: T.azulEscuro, background: T.azulTint, padding: "3px 8px", borderRadius: 6, minWidth: 74, textAlign: "center" }}>{r.tipo}</span>
+              <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.nome}</span>
+              <ChevronRight size={14} color={T.cinzaClaro} style={{ marginLeft: "auto", flexShrink: 0 }} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ HOME ══════════════════ */
+function TelaHome({ dores, ideias, projetos, prompts, setTela, ideiasDe }) {
+  const semIdeia = dores.filter(d => ideiasDe(d.id).length === 0).length;
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  return (
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{saudacao}, Isa 👋</h1>
+        <p style={{ fontSize: 13.5, color: T.cinza, marginTop: 4 }}>
+          {semIdeia > 0
+            ? <>Há <strong style={{ color: T.vermelho }}>{semIdeia} {semIdeia === 1 ? "dor" : "dores"} sem ideia</strong> no radar esperando resposta. Vamos juntos?</>
+            : "Todas as dores do radar têm pelo menos uma ideia ancorada. Excelente sinal."}
+        </p>
+      </div>
+
+      {/* Funil vivo: a espinha dorsal do CJ INOVA */}
+      <div className="card" style={{ padding: "22px 26px", marginBottom: 18 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 16 }}>Fluxo da dor · trimestre atual</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 0, flexWrap: "wrap" }}>
+          <EtapaFunil n={dores.length} label="Dores no radar" cor={T.azul} onClick={() => setTela("dores")} />
+          <ConectorFunil pct={Math.round(ideias.length / dores.length * 100)} />
+          <EtapaFunil n={ideias.length} label="Ideias ancoradas" cor={T.amarelo} onClick={() => setTela("ideias")} />
+          <ConectorFunil pct={Math.round(projetos.length / ideias.length * 100)} />
+          <EtapaFunil n={projetos.length} label="Projetos em curso" cor={T.verde} onClick={() => setTela("projetos")} />
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 18, alignItems: "start" }}>
+        <div>
+          <SubTitulo acao={<LinkVer onClick={() => setTela("projetos")} />}>Projetos em andamento</SubTitulo>
+          <div className="stagger" style={{ display: "grid", gap: 12 }}>
+            {projetos.map(p => <CardProjeto key={p.id} p={p} horizontal />)}
+          </div>
+
+          <SubTitulo acao={<LinkVer onClick={() => setTela("comunidade")} />}>Últimas da comunidade</SubTitulo>
+          <div className="card" style={{ padding: "4px 22px" }}>
+            {SEED_FEED.slice(0, 2).map((post, i) => (
+              <div key={post.id} style={{ padding: "15px 0", borderBottom: i === 0 ? `1px solid ${T.linhaSoft}` : "none", display: "flex", gap: 13 }}>
+                <Avatar nome={post.autor} />
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700 }}>{post.autor} <span style={{ fontWeight: 400, color: T.cinzaClaro }}>· {post.tempo}</span></div>
+                  <p style={{ fontSize: 13, marginTop: 4, lineHeight: 1.55, color: "#2a3442" }}>{post.texto}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <SubTitulo>Atalhos</SubTitulo>
+          <div className="stagger" style={{ display: "grid", gap: 8, marginBottom: 22 }}>
+            <Atalho icone={Sparkles} label="Copiar um prompt do acervo" onClick={() => setTela("prompts")} n={prompts.length} />
+            <Atalho icone={Bot} label="Abrir um GPT da CJ" onClick={() => setTela("gpts")} n={SEED_GPTS.length} />
+            <Atalho icone={FolderOpen} label="Achar um POP ou modelo" onClick={() => setTela("docs")} n={SEED_DOCS.length} />
+            <Atalho icone={GraduationCap} label="Assistir um treinamento" onClick={() => setTela("treinamentos")} n={SEED_TREINAMENTOS.length} />
+          </div>
+
+          <SubTitulo>Atividade recente</SubTitulo>
+          <div className="card" style={{ padding: "18px 20px" }}>
+            {ATIVIDADES.map((a, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, paddingBottom: i < ATIVIDADES.length - 1 ? 16 : 0, position: "relative" }}>
+                {i < ATIVIDADES.length - 1 && <div style={{ position: "absolute", left: 4.5, top: 14, bottom: 0, width: 1.5, background: T.linhaSoft }} />}
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: T.azul, marginTop: 3, flexShrink: 0, animation: i === 0 ? "pulseDot 2.4s infinite" : "none" }} />
+                <div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.45 }}><strong>{a.quem}</strong> {a.acao} <span style={{ color: T.azulEscuro, fontWeight: 600 }}>{a.alvo}</span></div>
+                  <div style={{ fontSize: 11, color: T.cinzaClaro, marginTop: 2 }}>{a.quando}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EtapaFunil({ n, label, cor, onClick }) {
+  return (
+    <button onClick={onClick} className="press" style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center", padding: "0 10px" }}>
+      <div className="num" style={{ fontSize: 38, fontWeight: 800, color: cor, lineHeight: 1 }}>{n}</div>
+      <div style={{ fontSize: 11.5, color: T.cinza, fontWeight: 600, marginTop: 6 }}>{label}</div>
+    </button>
+  );
+}
+
+function ConectorFunil({ pct }) {
+  return (
+    <div style={{ flex: 1, minWidth: 70, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "0 6px" }}>
+      <span className="num" style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro }}>{pct}% avançam</span>
+      <div style={{ width: "100%", position: "relative" }}>
+        <Barra pct={pct} cor={T.azul} alt={4} />
+      </div>
+    </div>
+  );
+}
+
+function SubTitulo({ children, acao }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "22px 0 12px" }}>
+      <h2 style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".02em", textTransform: "uppercase", color: T.cinza }}>{children}</h2>{acao}
+    </div>
+  );
+}
+
+function LinkVer({ onClick }) {
+  return <button onClick={onClick} className="press" style={{ background: "none", border: "none", color: T.azul, fontSize: 12.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}>Ver tudo <ChevronRight size={14} /></button>;
+}
+
+function Atalho({ icone: Ic, label, onClick, n }) {
+  return (
+    <button onClick={onClick} className="card lift press" style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer", textAlign: "left" }}>
+      <div style={{ width: 34, height: 34, borderRadius: 9, background: T.azulTint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Ic size={17} color={T.azul} />
+      </div>
+      <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{label}</span>
+      <span className="num" style={{ fontSize: 11.5, fontWeight: 700, color: T.cinzaClaro }}>{n}</span>
+      <ChevronRight size={15} color={T.cinzaClaro} />
+    </button>
+  );
+}
+
+function CardProjeto({ p, horizontal }) {
+  const corFase = p.fase === "Em Teste" ? T.verde : T.azul;
+  const corPrioridade = p.prioridade === "Alta" ? T.laranja : p.prioridade === "Média" ? T.azul : T.cinza;
+  return (
+    <div className="card lift" style={{ padding: horizontal ? "15px 18px" : 16, display: horizontal ? "flex" : "block", alignItems: "center", gap: 16 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+          <span className="num" style={{ fontSize: 10.5, fontWeight: 700, color: T.azulEscuro }}>{p.id}</span>
+          <span style={{ fontSize: 10.5, color: T.cinzaClaro }}>{p.nucleo}</span>
+          {p.dorId && <span style={{ fontSize: 10.5, color: T.cinzaClaro, display: "flex", alignItems: "center", gap: 3 }}><Link2 size={10} /> {p.dorId}</span>}
+          <Badge texto={p.fase} cor={corFase} />
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: horizontal ? 0 : 8 }}>{p.titulo}</div>
+        {!horizontal && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+            <span style={{ fontSize: 11.5, color: T.cinza }}>{p.equipe}</span>
+            <Badge texto={p.prioridade} cor={corPrioridade} />
+          </div>
+        )}
+        {!horizontal && <div className="num" style={{ fontSize: 11, color: T.cinzaClaro, marginTop: 6 }}>Previsão: <strong style={{ color: T.chumbo, fontWeight: 700 }}>{p.previsao}</strong></div>}
+      </div>
+      {horizontal && (
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+          <span style={{ fontSize: 11.5, color: T.cinza, maxWidth: 150, textAlign: "right" }}>{p.equipe}</span>
+          <Badge texto={p.prioridade} cor={corPrioridade} />
+          <div style={{ textAlign: "right", minWidth: 64 }}>
+            <div className="num" style={{ fontSize: 12.5, fontWeight: 800, color: T.chumbo }}>{p.previsao}</div>
+            <div style={{ fontSize: 9.5, color: T.cinzaClaro, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>previsão</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════ RADAR DE DORES ══════════════════ */
+function TelaDores({ dores, ideiasDe, projetosDe, setDorSelecionada, setModalDor }) {
+  const [busca, setBusca] = useState("");
+  const [area, setArea] = useState("Todas");
+  const filtradas = dores
+    .filter(d => area === "Todas" || d.area === area)
+    .filter(d => (d.titulo + d.id).toLowerCase().includes(busca.toLowerCase()))
+    .sort((a, b) => scoreDor(b) - scoreDor(a));
+
+  return (
+    <div>
+      <Cabecalho eyebrow="Fluxo da dor" titulo="Radar de Dores"
+        sub="A dor é a moeda do CJ INOVA. O calor (intensidade × frequência) define quem sobe no radar — não opinião, dado." />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 18, alignItems: "start" }}>
+        <div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+            <CampoBusca valor={busca} onChange={setBusca} placeholder="Buscar dor ou código (DOR-014)" />
+            {AREAS.map(a => <Chip key={a} ativo={area === a} onClick={() => setArea(a)}>{a}</Chip>)}
+          </div>
+
+          {filtradas.length === 0 ? (
+            <Vazio titulo="Nenhuma dor aqui" sub="Ajuste os filtros — ou registre a primeira dor desta área."
+              acao={<button onClick={() => setModalDor(true)} className="press" style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: T.azul, color: "white", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Registrar dor</button>} />
+          ) : (
+            <div className="stagger" style={{ display: "grid", gap: 10 }}>
+              {filtradas.map(d => {
+                const s = scoreDor(d), nI = ideiasDe(d.id).length, nP = projetosDe(d.id).length;
+                return (
+                  <div key={d.id} onClick={() => setDorSelecionada(d)} className="card lift press" style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 16, cursor: "pointer" }}>
+                    <div className="num" style={{ minWidth: 52, textAlign: "center" }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: heatColor(s), lineHeight: 1 }}>{s}</div>
+                      <div style={{ fontSize: 9.5, color: T.cinzaClaro, fontWeight: 700, letterSpacing: ".06em", marginTop: 3 }}>CALOR</div>
+                    </div>
+                    <div style={{ width: 1, alignSelf: "stretch", background: T.linhaSoft }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <span className="num" style={{ fontSize: 10.5, fontWeight: 700, color: T.azulEscuro }}>{d.id}</span>
+                        <Badge texto={d.status} cor={d.status === "Priorizada" ? T.laranja : d.status === "Em exploração" ? T.azul : T.cinza} />
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{d.titulo}</div>
+                      <div style={{ fontSize: 11.5, color: T.cinza }}>{d.area} · {d.alcance}</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                      <FluxoNum n={nI} label="ideias" cor={T.amarelo} />
+                      <ArrowRight size={12} color={T.linha} />
+                      <FluxoNum n={nP} label="proj." cor={T.verde} />
+                      <ChevronRight size={16} color={T.cinzaClaro} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Quadrante intensidade × frequência */}
+        <div className="card" style={{ padding: 18, position: "sticky", top: 78 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 12 }}>Mapa de calor</div>
+          <svg viewBox="0 0 240 220" style={{ width: "100%" }}>
+            <rect x="34" y="8" width="196" height="180" fill={T.bg} rx="10" />
+            <line x1="132" y1="8" x2="132" y2="188" stroke={T.linha} strokeWidth="1" strokeDasharray="3 4" />
+            <line x1="34" y1="98" x2="230" y2="98" stroke={T.linha} strokeWidth="1" strokeDasharray="3 4" />
+            {dores.map(d => {
+              const cx = 34 + ((d.frequencia - .5) / 5) * 196;
+              const cy = 188 - ((d.intensidade - .5) / 5) * 180;
+              return (
+                <g key={d.id} style={{ cursor: "pointer" }} onClick={() => setDorSelecionada(d)}>
+                  <circle cx={cx} cy={cy} r="9" fill={heatColor(scoreDor(d))} opacity=".22" />
+                  <circle cx={cx} cy={cy} r="5" fill={heatColor(scoreDor(d))} />
+                  <title>{d.id} · {d.titulo}</title>
+                </g>
+              );
+            })}
+            <text x="132" y="212" textAnchor="middle" fontSize="9.5" fill={T.cinzaClaro} fontWeight="600">FREQUÊNCIA →</text>
+            <text x="14" y="98" textAnchor="middle" fontSize="9.5" fill={T.cinzaClaro} fontWeight="600" transform="rotate(-90 14 98)">INTENSIDADE →</text>
+          </svg>
+          <div style={{ fontSize: 11.5, color: T.cinza, lineHeight: 1.5, marginTop: 10 }}>
+            O quadrante superior direito é a zona crítica: dói muito e dói sempre. Clique num ponto para abrir a dor.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FluxoNum({ n, label, cor }) {
+  return (
+    <div className="num" style={{ textAlign: "center", opacity: n === 0 ? .35 : 1, minWidth: 34 }}>
+      <div style={{ fontWeight: 800, fontSize: 15, color: n === 0 ? T.cinzaClaro : cor }}>{n}</div>
+      <div style={{ color: T.cinzaClaro, fontSize: 10 }}>{label}</div>
+    </div>
+  );
+}
+
+/* ══════════════════ DRAWER DA DOR ══════════════════ */
+function DrawerDor({ dor, ideias, projetos, onClose }) {
+  const s = scoreDor(dor);
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.42)", display: "flex", justifyContent: "flex-end", zIndex: 100, animation: "veil .18s ease both" }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "min(500px,100%)", background: T.bg, height: "100%", overflowY: "auto", animation: "slideDrawer .28s cubic-bezier(.2,.7,.3,1) both", boxShadow: "-16px 0 48px rgba(17,29,48,.18)" }}>
+        <div style={{ background: T.surface, borderBottom: `1px solid ${T.linha}`, padding: "22px 26px", position: "sticky", top: 0, zIndex: 2 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="num" style={{ fontSize: 11.5, fontWeight: 700, color: T.azulEscuro }}>{dor.id}</span>
+              <Badge texto={`calor ${s}`} cor={heatColor(s)} solido />
+              <Badge texto={dor.status} cor={T.cinza} />
+            </div>
+            <button onClick={onClose} className="press" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza }}><X size={16} /></button>
+          </div>
+          <h2 className="bracket" style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.35 }}>{dor.titulo}</h2>
+          <div style={{ display: "flex", gap: 14, marginTop: 12, fontSize: 12, color: T.cinza, flexWrap: "wrap" }}>
+            <span>📍 {dor.area}</span><span>👥 {dor.alcance}</span>
+            <span className="num">Intensidade {dor.intensidade}/5 · Frequência {dor.frequencia}/5</span>
+          </div>
+        </div>
+
+        <div style={{ padding: "22px 26px" }}>
+          <SecaoFluxo icone={<Lightbulb size={15} color={T.amarelo} />} titulo="Ideias ancoradas" vazio="Nenhuma ideia ainda — esta dor está esperando resposta.">
+            {ideias.map(i => <CardFluxo key={i.id} codigo={i.id} titulo={i.titulo} meta={i.autores} direita={<Badge texto={i.prioridade} cor={i.prioridade === "Alta" ? T.laranja : i.prioridade === "Média" ? T.azul : T.cinza} />} cor={T.amarelo} />)}
+          </SecaoFluxo>
+          <div style={{ textAlign: "center", margin: "6px 0" }}><ArrowRight size={16} color={T.linha} style={{ transform: "rotate(90deg)" }} /></div>
+          <SecaoFluxo icone={<Rocket size={15} color={T.verde} />} titulo="Projetos que nasceram daqui" vazio="Nenhuma ideia virou projeto ainda.">
+            {projetos.map(p => <CardFluxo key={p.id} codigo={p.id} titulo={p.titulo} meta={`${p.equipe} · ${p.fase}`} direita={<Badge texto={p.previsao} cor={T.cinza} />} cor={T.verde} />)}
+          </SecaoFluxo>
+          <div className="card" style={{ marginTop: 20, padding: 15, fontSize: 12, color: T.cinza, display: "flex", gap: 10, lineHeight: 1.55, border: `1px dashed ${T.linha}` }}>
+            <Link2 size={14} color={T.azul} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>O rastro <strong style={{ color: T.chumbo }}>{dor.id}</strong> acompanha cada ideia e projeto — a prova de que o trabalho começou numa dor real.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SecaoFluxo({ icone, titulo, children, vazio }) {
+  const itens = Array.isArray(children) ? children.filter(Boolean) : children ? [children] : [];
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+        {icone}<h3 style={{ fontSize: 12.5, fontWeight: 800 }}>{titulo}</h3>
+        <span className="num" style={{ fontSize: 11.5, color: T.cinzaClaro }}>({itens.length})</span>
+      </div>
+      {itens.length === 0
+        ? <div className="card" style={{ padding: 14, fontSize: 12, color: T.cinza, fontStyle: "italic" }}>{vazio}</div>
+        : <div style={{ display: "grid", gap: 8 }}>{itens}</div>}
+    </div>
+  );
+}
+
+function CardFluxo({ codigo, titulo, meta, direita, cor }) {
+  return (
+    <div className="card" style={{ padding: "12px 14px", borderLeft: `3px solid ${cor}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3, alignItems: "center" }}>
+        <span className="num" style={{ fontSize: 10.5, fontWeight: 700, color: T.azulEscuro }}>{codigo}</span>
+        {direita}
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 700 }}>{titulo}</div>
+      <div style={{ fontSize: 11.5, color: T.cinza, marginTop: 2 }}>{meta}</div>
+    </div>
+  );
+}
+
+/* ══════════════════ MODAL NOVA DOR ══════════════════ */
+function ModalNovaDor({ onSalvar, onClose, proximo }) {
+  const [f, setF] = useState({ titulo: "", area: "Publicações", intensidade: 3, frequencia: 3, alcance: "" });
+  const calor = f.intensidade * f.frequencia;
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: 18, animation: "veil .18s ease both" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: 18, width: "min(480px,100%)", overflow: "hidden", animation: "fadeUp .24s cubic-bezier(.2,.7,.3,1) both", boxShadow: "0 24px 64px rgba(17,29,48,.25)" }}>
+        <div style={{ padding: "20px 26px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <h2 className="bracket" style={{ fontSize: 17, fontWeight: 800 }}>Registrar uma dor</h2>
+            <div className="num" style={{ fontSize: 11.5, color: T.cinzaClaro, marginTop: 4 }}>Será registrada como {proximo}</div>
+          </div>
+          <button onClick={onClose} className="press" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza }}><X size={16} /></button>
+        </div>
+        <div style={{ padding: "18px 26px 24px", display: "grid", gap: 15 }}>
+          <p style={{ fontSize: 12.5, color: T.cinza, lineHeight: 1.5 }}>Descreva o incômodo real do dia a dia. A solução vem depois — aqui só mora o problema.</p>
+          <div>
+            <Rotulo>Qual é a dor?</Rotulo>
+            <textarea value={f.titulo} onChange={e => setF({ ...f, titulo: e.target.value })} rows={2} placeholder="Ex: Refaço a mesma conferência toda semana"
+              style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13.5, background: T.surface, resize: "none", lineHeight: 1.5, transition: "border-color .15s, box-shadow .15s" }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <Rotulo>Área</Rotulo>
+              <select value={f.area} onChange={e => setF({ ...f, area: e.target.value })}
+                style={{ width: "100%", padding: "10.5px 12px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface }}>
+                {AREAS.filter(a => a !== "Todas").map(a => <option key={a}>{a}</option>)}
+              </select>
+            </div>
+            <div>
+              <Rotulo>Quem sente?</Rotulo>
+              <input value={f.alcance} onChange={e => setF({ ...f, alcance: e.target.value })} placeholder="Ex: 4 analistas"
+                style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface, transition: "border-color .15s, box-shadow .15s" }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 14 }}>
+            <Faixa label={`Intensidade · ${f.intensidade}/5`} v={f.intensidade} on={v => setF({ ...f, intensidade: v })} />
+            <Faixa label={`Frequência · ${f.frequencia}/5`} v={f.frequencia} on={v => setF({ ...f, frequencia: v })} />
+          </div>
+          <div style={{ padding: "12px 14px", borderRadius: 11, background: heatColor(calor) + "14", fontSize: 12.5, display: "flex", alignItems: "center", gap: 9 }}>
+            <TrendingUp size={15} color={heatColor(calor)} />
+            <span>Calor: <strong className="num" style={{ color: heatColor(calor), fontSize: 14 }}>{calor}</strong> — quanto maior, mais alto no radar.</span>
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button onClick={onClose} className="press" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.surface, fontSize: 13, fontWeight: 700, cursor: "pointer", color: T.chumbo }}>Cancelar</button>
+            <button disabled={!f.titulo.trim()} className="press"
+              onClick={() => onSalvar({ id: proximo, titulo: f.titulo.trim(), area: f.area, intensidade: f.intensidade, frequencia: f.frequencia, alcance: f.alcance || "A definir", status: "Registrada" })}
+              style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: f.titulo.trim() ? T.azul : T.linha, color: "white", fontSize: 13, fontWeight: 700, cursor: f.titulo.trim() ? "pointer" : "not-allowed", transition: "background .15s" }}>
+              Salvar no radar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Rotulo({ children }) { return <label style={{ fontSize: 11.5, fontWeight: 700, display: "block", marginBottom: 6, color: T.chumbo }}>{children}</label>; }
+function Faixa({ label, v, on }) {
+  return (
+    <div style={{ flex: 1 }}>
+      <Rotulo>{label}</Rotulo>
+      <input type="range" min={1} max={5} value={v} onChange={e => on(Number(e.target.value))} style={{ width: "100%", accentColor: T.azul }} />
+    </div>
+  );
+}
+
+/* ══════════════════ BANCO DE IDEIAS ══════════════════ */
+function TelaIdeias({ ideias, dores, setTela }) {
+  const dorDe = (id) => dores.find(d => d.id === id);
+  const corPrioridade = (p) => p === "Alta" ? T.laranja : p === "Média" ? T.azul : T.cinza;
+  return (
+    <div>
+      <Cabecalho eyebrow="Fluxo da dor" titulo="Banco de Ideias"
+        sub="Ideias mapeadas pelo time para futura avaliação e priorização. Quando uma ideia já responde a uma dor do radar, o rastro DOR-XXX aparece no card." />
+      <div className="stagger" style={{ display: "grid", gap: 12 }}>
+        {ideias.map(i => {
+          const dor = i.dorId ? dorDe(i.dorId) : null;
+          return (
+            <div key={i.id} className="card lift" style={{ padding: "16px 20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 220 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+                    <span className="num" style={{ fontSize: 10.5, fontWeight: 700, color: T.azulEscuro }}>{i.id}</span>
+                    {dor ? (
+                      <button onClick={() => setTela("dores")} className="press" style={{ background: T.azulTint, border: "none", color: T.azulEscuro, fontSize: 10.5, cursor: "pointer", fontWeight: 700, padding: "2px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                        <Link2 size={10} /> {i.dorId}
+                      </button>
+                    ) : (
+                      <Badge texto="Backlog" cor={T.cinza} />
+                    )}
+                    <span style={{ fontSize: 10.5, color: T.cinzaClaro }}>{i.nucleo}</span>
+                  </div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700 }}>{i.titulo}</div>
+                  {dor && <div style={{ fontSize: 12, color: T.cinza, marginTop: 3, fontStyle: "italic" }}>responde a: “{dor.titulo}”</div>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+                  <Badge texto={i.prioridade} cor={corPrioridade(i.prioridade)} />
+                  <span style={{ fontSize: 12, color: T.cinza, maxWidth: 170, textAlign: "right" }}>{i.autores}</span>
+                </div>
+              </div>
+              {i.notas && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.linhaSoft}`, fontSize: 12, color: T.cinza, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Zap size={13} color={T.amarelo} /> {i.notas}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ PROJETOS ══════════════════ */
+function TelaProjetos({ projetos }) {
+  const fases = [
+    { nome: "Em Desenvolvimento", cor: T.azul }, { nome: "Em Teste", cor: T.verde },
+  ];
+  return (
+    <div>
+      <Cabecalho eyebrow="Fluxo da dor" titulo="Projetos"
+        sub="Do papel para a operação. Todo card exibe o rastro completo PRJ ← IDE ← DOR." />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}>
+        {fases.map(fase => {
+          const doFase = projetos.filter(p => p.fase === fase.nome);
+          return (
+            <div key={fase.nome} style={{ background: T.linhaSoft + "88", borderRadius: 14, padding: "12px 12px 14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "2px 6px" }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: fase.cor }} />
+                <h3 style={{ fontSize: 12.5, fontWeight: 800 }}>{fase.nome}</h3>
+                <span className="num" style={{ fontSize: 11, color: T.cinzaClaro, fontWeight: 700, marginLeft: "auto", background: T.surface, borderRadius: 10, padding: "1px 8px" }}>{doFase.length}</span>
+              </div>
+              <div className="stagger" style={{ display: "grid", gap: 9 }}>
+                {doFase.map(p => <CardProjeto key={p.id} p={p} />)}
+                {doFase.length === 0 && (
+                  <div style={{ padding: "20px 14px", fontSize: 12, color: T.cinzaClaro, textAlign: "center", border: `1.5px dashed ${T.linha}`, borderRadius: 12 }}>
+                    Nenhum projeto nesta fase
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ BIBLIOTECA DE PROMPTS ══════════════════ */
+function TelaPrompts({ prompts, favoritos, toggleFav, copiado, copiarPrompt }) {
+  const [busca, setBusca] = useState("");
+  const [ferr, setFerr] = useState("Todas");
+  const [soFav, setSoFav] = useState(false);
+  const ferramentas = ["Todas", "Claude", "ChatGPT", "Copilot"];
+  const lista = prompts
+    .filter(p => ferr === "Todas" || p.ferramenta === ferr)
+    .filter(p => !soFav || favoritos.includes(p.id))
+    .filter(p => (p.titulo + p.tags.join(" ")).toLowerCase().includes(busca.toLowerCase()));
+
+  return (
+    <div>
+      <Cabecalho eyebrow="Acervo de IA" titulo="Biblioteca de Prompts"
+        sub="Prompts testados pela equipe, prontos para copiar, adaptar e avaliar. Conhecimento que não mora mais no bloco de notas de cada um." />
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <CampoBusca valor={busca} onChange={setBusca} placeholder="Buscar por título ou tag" />
+        {ferramentas.map(fr => <Chip key={fr} ativo={ferr === fr} onClick={() => setFerr(fr)}>{fr}</Chip>)}
+        <Chip ativo={soFav} onClick={() => setSoFav(!soFav)}>★ Favoritos</Chip>
+      </div>
+
+      {lista.length === 0 ? (
+        <Vazio titulo="Nenhum prompt encontrado" sub={soFav ? "Você ainda não favoritou prompts com esses filtros." : "Tente outro termo ou ferramenta."} />
+      ) : (
+        <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: 14 }}>
+          {lista.map(p => {
+            const fav = favoritos.includes(p.id);
+            const corFerr = p.ferramenta === "Claude" ? T.laranja : p.ferramenta === "ChatGPT" ? T.verde : T.azul;
+            return (
+              <div key={p.id} className="card lift" style={{ padding: 18, display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 9 }}>
+                  <Badge texto={p.ferramenta} cor={corFerr} />
+                  <button onClick={() => toggleFav(p.id)} className="press" style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }} aria-label="Favoritar">
+                    <Star size={16} className={fav ? "heart-pop" : ""} color={fav ? T.amarelo : T.linha} fill={fav ? T.amarelo : "none"} />
+                  </button>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 7, lineHeight: 1.35 }}>{p.titulo}</div>
+                <div style={{ fontSize: 11.5, color: T.cinza, background: T.bg, borderRadius: 10, padding: "10px 12px", lineHeight: 1.55, flex: 1, marginBottom: 10, maxHeight: 88, overflow: "hidden", position: "relative", fontFamily: "ui-monospace, Menlo, monospace" }}>
+                  {p.texto}
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 30, background: `linear-gradient(transparent, ${T.bg})` }} />
+                </div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 11 }}>
+                  {p.tags.map(t => <span key={t} style={{ fontSize: 10.5, color: T.azulEscuro, background: T.azulTint, padding: "2.5px 9px", borderRadius: 6, fontWeight: 700 }}>#{t}</span>)}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span className="num" style={{ fontSize: 11.5, color: T.cinza }}>★ {p.avaliacao} · {p.usos} usos · {p.autor}</span>
+                  <button onClick={() => copiarPrompt(p)} className="press"
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "none", background: copiado === p.id ? T.verde : T.azul, color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "background .2s", minWidth: 96, justifyContent: "center" }}>
+                    {copiado === p.id ? <><Check size={13} strokeWidth={3} /> Copiado</> : <><Copy size={13} /> Copiar</>}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════ GPTs & SKILLS ══════════════════ */
+function TelaGPTs() {
+  return (
+    <div>
+      <Cabecalho eyebrow="Acervo de IA" titulo="GPTs & Skills"
+        sub="Cada assistente tem dono, versão e regra clara de quando usar. Nada de GPT fantasma que só uma pessoa conhece." />
+      <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+        {SEED_GPTS.map(g => (
+          <div key={g.id} className="card lift" style={{ padding: 20, display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: T.chumbo, display: "flex", alignItems: "center", justifyContent: "center" }}><LogoFIUS size={19} cor={T.azul} /></div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <Badge texto={g.ferramenta} cor={T.roxo} />
+                <Badge texto={g.versao} cor={T.cinza} />
+              </div>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 5 }}>{g.nome}</div>
+            <div style={{ fontSize: 12.5, color: T.cinza, lineHeight: 1.55, marginBottom: 12, flex: 1 }}>{g.objetivo}</div>
+            <div style={{ fontSize: 11.5, background: T.azulTint, borderRadius: 10, padding: "9px 12px", marginBottom: 13, color: T.azulEscuro, lineHeight: 1.5 }}>
+              <strong>Quando usar:</strong> {g.quando}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: T.cinza }}>
+                <Avatar nome={g.responsavel} tam={24} /> {g.responsavel}
+              </div>
+              <button className="press lift" style={{ display: "flex", alignItems: "center", gap: 5, background: T.surface, border: `1px solid ${T.linha}`, borderRadius: 9, padding: "7px 13px", fontSize: 12, fontWeight: 700, color: T.azulEscuro, cursor: "pointer" }}>
+                Abrir <ExternalLink size={12} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ TREINAMENTOS ══════════════════ */
+function TelaTreinamentos() {
+  const meta = { video: { ic: Video, rot: "Vídeo" }, pdf: { ic: FileText, rot: "Leitura" }, apresentacao: { ic: Presentation, rot: "Slides" } };
+  return (
+    <div>
+      <Cabecalho eyebrow="Conhecimento" titulo="Treinamentos"
+        sub="Da base de IA aos POPs — tudo com instrutor, formato e duração definidos." />
+      <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 14 }}>
+        {SEED_TREINAMENTOS.map(t => {
+          const M = meta[t.formato] || meta.pdf; const Ic = M.ic;
+          const corCat = t.categoria === "IA" ? T.roxo : t.categoria === "Competências" ? T.laranja : t.categoria === "Ferramentas" ? T.azul : T.navy;
+          return (
+            <div key={t.id} className="card lift" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div style={{ height: 72, background: `linear-gradient(120deg, ${corCat}18, ${corCat}08)`, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: `1px solid ${T.linhaSoft}` }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: T.surface, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(17,29,48,.08)" }}>
+                  <Ic size={19} color={corCat} />
+                </div>
+              </div>
+              <div style={{ padding: "14px 17px 16px", flex: 1, display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                  <Badge texto={t.categoria} cor={corCat} />
+                  <Badge texto={M.rot} cor={T.cinza} />
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 5, lineHeight: 1.35 }}>{t.titulo}</div>
+                <div style={{ fontSize: 12, color: T.cinza, lineHeight: 1.5, flex: 1 }}>{t.desc}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 11.5, color: T.cinza }}>
+                  <Avatar nome={t.instrutor} tam={22} /> {t.instrutor}
+                  <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4 }}><Clock size={12} /> {t.duracao}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ DOCUMENTOS ══════════════════ */
+function TelaDocs() {
+  const [busca, setBusca] = useState("");
+  const [pasta, setPasta] = useState("Todas");
+  const pastas = ["Todas", ...new Set(SEED_DOCS.map(d => d.pasta))];
+  const lista = SEED_DOCS.filter(d => (pasta === "Todas" || d.pasta === pasta) && d.nome.toLowerCase().includes(busca.toLowerCase()));
+  const corTipo = { PDF: T.vermelho, DOCX: T.azul, PPTX: T.laranja };
+  return (
+    <div>
+      <Cabecalho eyebrow="Conhecimento" titulo="Biblioteca de Documentos"
+        sub="POPs, modelos e manuais num índice único e pesquisável — a resposta direta à DOR-008." />
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <CampoBusca valor={busca} onChange={setBusca} placeholder="Buscar documento" />
+        {pastas.map(p => <Chip key={p} ativo={pasta === p} onClick={() => setPasta(p)}>{p}</Chip>)}
+      </div>
+      {lista.length === 0 ? (
+        <Vazio titulo="Nenhum documento encontrado" sub="Tente outro termo ou mude a pasta." />
+      ) : (
+        <div className="card" style={{ overflow: "hidden" }}>
+          {lista.map((d, i) => (
+            <div key={d.id} className="linha-doc" style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 20px", borderBottom: i < lista.length - 1 ? `1px solid ${T.linhaSoft}` : "none", cursor: "pointer" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: (corTipo[d.tipo] || T.cinza) + "16", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <FileText size={17} color={corTipo[d.tipo] || T.cinza} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.nome}</div>
+                <div style={{ fontSize: 11.5, color: T.cinzaClaro }}>{d.pasta} · atualizado {d.atualizado} · {d.autor}</div>
+              </div>
+              <Badge texto={d.tipo} cor={corTipo[d.tipo] || T.cinza} />
+              <span className="acao-doc" style={{ fontSize: 12, fontWeight: 700, color: T.azul, display: "flex", alignItems: "center", gap: 4 }}>Abrir <ChevronRight size={14} /></span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════ COMUNIDADE ══════════════════ */
+function TelaComunidade({ likes, toggleLike }) {
+  return (
+    <div>
+      <Cabecalho eyebrow="Time & gestão" titulo="Comunidade"
+        sub="Dicas, boas práticas e novidades do time. Vamos juntos? 💙" />
+      <div style={{ maxWidth: 640 }}>
+        <div className="card" style={{ padding: "14px 18px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center" }}>
+          <Avatar nome="Isa" tam={32} />
+          <div style={{ flex: 1, fontSize: 13, color: T.cinzaClaro, background: T.bg, borderRadius: 20, padding: "10px 16px", cursor: "text" }}>
+            Compartilhe uma dica, automação ou novidade…
+          </div>
+          <button className="press" style={{ background: T.azul, color: "white", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Publicar</button>
+        </div>
+        <div className="stagger" style={{ display: "grid", gap: 13 }}>
+          {SEED_FEED.map(post => {
+            const curtido = likes[post.id];
+            return (
+              <div key={post.id} className="card" style={{ padding: "18px 20px" }}>
+                <div style={{ display: "flex", gap: 12, marginBottom: 11 }}>
+                  <Avatar nome={post.autor} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{post.autor}</div>
+                    <div style={{ fontSize: 11, color: T.cinzaClaro }}>{post.cargo} · {post.tempo}</div>
+                  </div>
+                </div>
+                <p style={{ fontSize: 13.5, lineHeight: 1.6, marginBottom: 13, color: "#2a3442" }}>{post.texto}</p>
+                <div style={{ display: "flex", gap: 16, fontSize: 12, paddingTop: 11, borderTop: `1px solid ${T.linhaSoft}` }}>
+                  <button onClick={() => toggleLike(post.id)} className="press" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: curtido ? T.vermelho : T.cinza, fontWeight: 700, fontSize: 12 }}>
+                    <Heart size={15} className={curtido ? "heart-pop" : ""} fill={curtido ? T.vermelho : "none"} /> {post.likes + (curtido ? 1 : 0)}
+                  </button>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, color: T.cinza, fontWeight: 600 }}><MessageCircle size={15} /> {post.comentarios} comentários</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ INDICADORES ══════════════════ */
+function TelaIndicadores({ dores, ideias, projetos, prompts }) {
+  const conversao = Math.round((projetos.length / dores.length) * 100);
+  const metricas = [
+    { label: "Dores registradas", valor: dores.length, meta: 12, cor: T.azul },
+    { label: "Ideias ancoradas", valor: ideias.length, meta: 10, cor: T.amarelo },
+    { label: "Projetos em curso", valor: projetos.length, meta: 5, cor: T.verde },
+    { label: "Prompts no acervo", valor: prompts.length, meta: 15, cor: T.roxo },
+    { label: "Treinamentos publicados", valor: SEED_TREINAMENTOS.length, meta: 8, cor: T.laranja },
+    { label: "Documentos indexados", valor: SEED_DOCS.length, meta: 20, cor: T.azulEscuro },
+  ];
+  const R = 42, C = 2 * Math.PI * R;
+  return (
+    <div>
+      <Cabecalho eyebrow="Time & gestão" titulo="Indicadores"
+        sub="Métricas do trimestre. O número que mais importa: quantas dores viraram resposta." />
+      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 16, alignItems: "start" }}>
+        <div className="card" style={{ padding: 24, textAlign: "center" }}>
+          <svg viewBox="0 0 110 110" style={{ width: 150 }}>
+            <circle cx="55" cy="55" r={R} fill="none" stroke={T.linhaSoft} strokeWidth="11" />
+            <circle cx="55" cy="55" r={R} fill="none" stroke={T.azul} strokeWidth="11" strokeLinecap="round"
+              strokeDasharray={`${C * conversao / 100} ${C}`} transform="rotate(-90 55 55)"
+              style={{ transition: "stroke-dasharray 1s cubic-bezier(.2,.7,.3,1)" }} />
+            <text x="55" y="52" textAnchor="middle" fontSize="22" fontWeight="800" fill={T.chumbo} className="num">{conversao}%</text>
+            <text x="55" y="68" textAnchor="middle" fontSize="8" fontWeight="700" fill={T.cinzaClaro}>DOR → PROJETO</text>
+          </svg>
+          <div style={{ fontSize: 13.5, fontWeight: 800, marginTop: 8 }}>Taxa de conversão</div>
+          <div style={{ fontSize: 12, color: T.cinza, marginTop: 4, lineHeight: 1.5 }}>{projetos.length} de {dores.length} dores do radar já têm projeto em andamento.</div>
+        </div>
+        <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 12 }}>
+          {metricas.map(m => (
+            <div key={m.label} className="card lift" style={{ padding: "16px 18px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700 }}>{m.label}</span>
+                <span className="num" style={{ fontSize: 19, fontWeight: 800, color: m.cor }}>{m.valor}<span style={{ fontSize: 11, color: T.cinzaClaro, fontWeight: 600 }}>/{m.meta}</span></span>
+              </div>
+              <Barra pct={Math.min(100, (m.valor / m.meta) * 100)} cor={m.cor} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ ADMINISTRAÇÃO ══════════════════ */
+function TelaAdmin() {
+  const usuarios = [
+    { nome: "Isabella Vieira Chaves", papel: "Administradora", status: "Ativa" },
+    { nome: "Bruna", papel: "Editora", status: "Ativa" },
+    { nome: "Clara", papel: "Editora", status: "Ativa" },
+    { nome: "Lilian", papel: "Colaboradora", status: "Ativa" },
+  ];
+  const trilha = [
+    { quando: "02/07 · 09:12", quem: "Isa", oque: "atualizou o prompt “Síntese de ata de audiência” (v2)" },
+    { quando: "01/07 · 15:30", quem: "Bruna", oque: "publicou o POP de Triagem de Publicações" },
+    { quando: "28/06 · 11:47", quem: "Clara", oque: "cadastrou o GPT “Revisor de POPs”" },
+  ];
+  return (
+    <div>
+      <Cabecalho eyebrow="Time & gestão" titulo="Administração"
+        sub="Usuários, papéis e auditoria. Governança proporcional: pesada só onde o investimento é pesado." />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
+        <div>
+          <SubTitulo>Usuários & papéis</SubTitulo>
+          <div className="stagger" style={{ display: "grid", gap: 9 }}>
+            {usuarios.map(u => (
+              <div key={u.nome} className="card lift" style={{ display: "flex", alignItems: "center", gap: 13, padding: "13px 16px" }}>
+                <Avatar nome={u.nome} tam={36} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{u.nome}</div>
+                  <div style={{ fontSize: 11.5, color: T.cinzaClaro }}>Controladoria Jurídica</div>
+                </div>
+                <Badge texto={u.papel} cor={u.papel === "Administradora" ? T.azul : u.papel === "Editora" ? T.roxo : T.cinza} />
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.verde }} title="Ativa" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <SubTitulo>Trilha de auditoria</SubTitulo>
+          <div className="card" style={{ padding: "18px 20px" }}>
+            {trilha.map((a, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, paddingBottom: i < trilha.length - 1 ? 16 : 0, position: "relative" }}>
+                {i < trilha.length - 1 && <div style={{ position: "absolute", left: 4.5, top: 14, bottom: 0, width: 1.5, background: T.linhaSoft }} />}
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: T.navy, marginTop: 3, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.5 }}><strong>{a.quem}</strong> {a.oque}</div>
+                  <div className="num" style={{ fontSize: 11, color: T.cinzaClaro, marginTop: 2 }}>{a.quando}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="card" style={{ marginTop: 12, padding: 15, fontSize: 12, color: T.cinza, lineHeight: 1.55, border: `1px dashed ${T.linha}`, display: "flex", gap: 10 }}>
+            <Users size={14} color={T.azul} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>Papéis: <strong style={{ color: T.chumbo }}>Administradora</strong> gerencia tudo · <strong style={{ color: T.chumbo }}>Editora</strong> cria e edita conteúdo · <strong style={{ color: T.chumbo }}>Colaboradora</strong> registra dores, comenta e favorita.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
