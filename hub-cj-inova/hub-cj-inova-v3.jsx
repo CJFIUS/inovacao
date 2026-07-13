@@ -27,7 +27,7 @@ const dorFromDb = (d) => ({ id: d.id, titulo: d.titulo, area: d.area, intensidad
 const ideiaFromDb = (i) => ({ id: i.id, dorId: i.dor_id, nucleo: i.nucleo, titulo: i.titulo, autores: i.autores, prioridade: i.prioridade, notas: i.notas });
 const projetoFromDb = (p) => ({ id: p.id, dorId: p.dor_id, nucleo: p.nucleo, titulo: p.titulo, equipe: p.equipe, prioridade: p.prioridade, previsao: p.previsao, fase: p.fase });
 const agenteFromDb = (a) => ({ id: a.id, nome: a.nome, nucleo: a.nucleo, objetivo: a.objetivo, criadoPor: a.criado_por, equipe: a.equipe, link: a.link || "" });
-const postFromDb = (p) => ({ id: p.id, autorId: p.autor_id, autor: p.profiles?.nome || "…", likesCount: p.likes_count, criadoEm: p.criado_em });
+const postFromDb = (p) => ({ id: p.id, autor: p.autor_nome || "Alguém da equipe", likesCount: p.likes_count, criadoEm: p.criado_em });
 
 /* Sem prompts registrados ainda — a biblioteca começa vazia até o time cadastrar o primeiro. */
 const SEED_PROMPTS = [];
@@ -133,10 +133,11 @@ function TelaErro({ mensagem, onTentarDeNovo, onSair }) {
   );
 }
 
+/* Login único da equipe: um e-mail fixo por trás das cenas, a "senha da equipe"
+   cadastrada no Supabase (Authentication > Users) é a única credencial visível. */
+const EMAIL_EQUIPE = "equipe@cjinova.local";
+
 function TelaLogin() {
-  const [modo, setModo] = useState("entrar");
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [mensagem, setMensagem] = useState(null);
@@ -144,20 +145,14 @@ function TelaLogin() {
   const enviar = async (e) => {
     e.preventDefault();
     setMensagem(null); setCarregando(true);
-    if (modo === "cadastrar") {
-      const { error } = await supabase.auth.signUp({ email, password: senha, options: { data: { nome } } });
-      if (error) setMensagem({ tipo: "erro", texto: error.message });
-      else setMensagem({ tipo: "ok", texto: "Conta criada! Se pedir confirmação por e-mail, confirme e depois entre ao lado." });
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-      if (error) setMensagem({ tipo: "erro", texto: error.message });
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email: EMAIL_EQUIPE, password: senha });
+    if (error) setMensagem(error.message.includes("Invalid login") ? "Senha incorreta." : error.message);
     setCarregando(false);
   };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg, fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif" }}>
-      <div className="card" style={{ width: "min(380px, 92vw)", padding: "32px 28px" }}>
+      <div className="card" style={{ width: "min(360px, 92vw)", padding: "32px 28px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
           <LogoFIUS size={30} cor={T.azul} />
           <div>
@@ -165,35 +160,21 @@ function TelaLogin() {
             <div style={{ fontSize: 9.5, color: T.cinzaClaro, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" }}>Controladoria Jurídica</div>
           </div>
         </div>
-        <h1 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{modo === "entrar" ? "Entrar no Hub" : "Criar sua conta"}</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Entrar no Hub</h1>
         <p style={{ fontSize: 12.5, color: T.cinza, marginBottom: 20, lineHeight: 1.5 }}>
-          {modo === "entrar" ? "Use o e-mail e senha do seu cadastro." : "Toda conta nova entra como Membro — peça a uma Administradora para liberar mais acesso."}
+          Peça a senha da equipe para quem administra o Hub.
         </p>
         <form onSubmit={enviar} style={{ display: "grid", gap: 12 }}>
-          {modo === "cadastrar" && (
-            <div>
-              <Rotulo>Nome</Rotulo>
-              <input required value={nome} onChange={e => setNome(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
-            </div>
-          )}
           <div>
-            <Rotulo>E-mail</Rotulo>
-            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+            <Rotulo>Senha da equipe</Rotulo>
+            <input autoFocus required type="password" value={senha} onChange={e => setSenha(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
           </div>
-          <div>
-            <Rotulo>Senha</Rotulo>
-            <input required type="password" minLength={6} value={senha} onChange={e => setSenha(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
-          </div>
-          {mensagem && <div style={{ fontSize: 12, lineHeight: 1.5, color: mensagem.tipo === "erro" ? T.vermelho : T.verde }}>{mensagem.texto}</div>}
+          {mensagem && <div style={{ fontSize: 12, lineHeight: 1.5, color: T.vermelho }}>{mensagem}</div>}
           <button disabled={carregando} type="submit" className="press"
             style={{ padding: "11px 16px", borderRadius: 10, border: "none", background: T.azul, color: "white", fontWeight: 700, fontSize: 13.5, cursor: carregando ? "wait" : "pointer" }}>
-            {carregando ? "Aguarde…" : modo === "entrar" ? "Entrar" : "Criar conta"}
+            {carregando ? "Aguarde…" : "Entrar"}
           </button>
         </form>
-        <button onClick={() => { setModo(m => m === "entrar" ? "cadastrar" : "entrar"); setMensagem(null); }} className="press"
-          style={{ marginTop: 16, background: "none", border: "none", color: T.azul, fontSize: 12.5, fontWeight: 700, cursor: "pointer", width: "100%", textAlign: "center" }}>
-          {modo === "entrar" ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
-        </button>
       </div>
     </div>
   );
@@ -218,8 +199,9 @@ function HubAutenticado({ sessao, perfil }) {
   const [paleta, setPaleta] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const podeEditar = perfil.papel === "editor" || perfil.papel === "admin";
-  const ehAdmin = perfil.papel === "admin";
+  // Acesso é por senha única de equipe — todo mundo que entra tem o mesmo nível de acesso.
+  const podeEditar = true;
+  const ehAdmin = true;
 
   useEffect(() => {
     let vivo = true;
@@ -229,7 +211,7 @@ function HubAutenticado({ sessao, perfil }) {
         supabase.from("ideias").select("*").order("id"),
         supabase.from("projetos").select("*").order("id"),
         supabase.from("agentes").select("*").order("id"),
-        supabase.from("posts").select("*, profiles(nome)").order("criado_em", { ascending: false }),
+        supabase.from("posts").select("*").order("criado_em", { ascending: false }),
         supabase.from("curtidas").select("post_id").eq("usuario_id", sessao.user.id),
       ]);
       if (!vivo) return;
@@ -282,8 +264,8 @@ function HubAutenticado({ sessao, perfil }) {
     notificar("Link do agente atualizado para todo o time");
   };
 
-  const publicarPost = async (texto) => {
-    const { data, error } = await supabase.from("posts").insert({ autor_id: sessao.user.id, texto }).select("*, profiles(nome)").single();
+  const publicarPost = async (texto, autorNome) => {
+    const { data, error } = await supabase.from("posts").insert({ autor_id: sessao.user.id, autor_nome: autorNome, texto }).select("*").single();
     if (error) { notificar("Não deu para publicar: " + error.message); return; }
     setPosts(p => [postFromDb(data), ...p]);
     notificar("Post publicado na comunidade");
@@ -315,7 +297,7 @@ function HubAutenticado({ sessao, perfil }) {
   return (
     <div style={{ fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", background: T.bg, minHeight: "100vh", display: "flex", color: T.chumbo }}>
       <EstilosGlobais />
-      <Sidebar tela={tela} setTela={setTela} perfil={perfil} onSair={sair} />
+      <Sidebar tela={tela} setTela={setTela} onSair={sair} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Topbar abrirPaleta={() => setPaleta(true)} setModalDor={setModalDor} />
         <main key={tela} className="pagina" style={{ flex: 1, padding: "26px 34px 48px", maxWidth: 1180, width: "100%", margin: "0 auto" }}>
@@ -330,7 +312,7 @@ function HubAutenticado({ sessao, perfil }) {
             {tela === "docs" && <TelaDocs />}
             {tela === "comunidade" && <TelaComunidade {...props} />}
             {tela === "indicadores" && <TelaIndicadores {...props} />}
-            {tela === "admin" && <TelaAdmin ehAdmin={ehAdmin} meuId={sessao.user.id} />}
+            {tela === "admin" && <TelaAdmin />}
           </>}
         </main>
       </div>
@@ -407,9 +389,7 @@ function EstilosGlobais() {
 }
 
 /* ══════════════════ ESTRUTURA ══════════════════ */
-const PAPEL_LABEL = { admin: "Administradora", editor: "Editor(a)", membro: "Membro" };
-
-function Sidebar({ tela, setTela, perfil, onSair }) {
+function Sidebar({ tela, setTela, onSair }) {
   return (
     <aside style={{ width: 248, background: T.surface, borderRight: `1px solid ${T.linha}`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
       <div style={{ padding: "20px 22px 16px", display: "flex", alignItems: "center", gap: 11 }}>
@@ -439,10 +419,12 @@ function Sidebar({ tela, setTela, perfil, onSair }) {
         ))}
       </nav>
       <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.linha}`, display: "flex", alignItems: "center", gap: 11 }}>
-        <Avatar nome={perfil.nome} tam={34} />
+        <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.navy, color: "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <LogoFIUS size={16} cor="white" />
+        </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{perfil.nome}</div>
-          <div style={{ fontSize: 10.5, color: T.cinzaClaro }}>{PAPEL_LABEL[perfil.papel] || perfil.papel}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600 }}>Equipe CJ INOVA</div>
+          <div style={{ fontSize: 10.5, color: T.cinzaClaro }}>Acesso compartilhado</div>
         </div>
         <button onClick={onSair} className="press" title="Sair" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza, flexShrink: 0 }}>
           <LogOut size={15} />
@@ -590,17 +572,16 @@ function Paleta({ fechar, setTela, dores, ideias, projetos, prompts }) {
 }
 
 /* ══════════════════ HOME ══════════════════ */
-function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, ideiasDe, perfil }) {
+function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, ideiasDe }) {
   const semIdeia = dores.filter(d => ideiasDe(d.id).length === 0).length;
   const ideiasVinculadas = ideias.filter(i => i.dorId).length;
   const projetosVinculados = projetos.filter(p => p.dorId).length;
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
-  const primeiroNome = perfil.nome.split(" ")[0];
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{saudacao}, {primeiroNome} 👋</h1>
+        <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{saudacao}, equipe 👋</h1>
         <p style={{ fontSize: 13.5, color: T.cinza, marginTop: 4 }}>
           {semIdeia > 0
             ? <>Há <strong style={{ color: T.vermelho }}>{semIdeia} {semIdeia === 1 ? "dor" : "dores"} sem ideia</strong> no radar esperando resposta. Vamos juntos?</>
@@ -1340,12 +1321,15 @@ function tempoRelativo(iso) {
   return `há ${d} ${d === 1 ? "dia" : "dias"}`;
 }
 
-function TelaComunidade({ posts, publicarPost, curtidasMinhas, toggleLike, perfil }) {
+function TelaComunidade({ posts, publicarPost, curtidasMinhas, toggleLike }) {
+  const [meuNome, setMeuNome] = useState(() => { try { return localStorage.getItem("cjinova_nome") || ""; } catch { return ""; } });
   const [rascunho, setRascunho] = useState("");
   const enviar = () => {
     const texto = rascunho.trim();
-    if (!texto) return;
-    publicarPost(texto);
+    const nome = meuNome.trim();
+    if (!texto || !nome) return;
+    try { localStorage.setItem("cjinova_nome", nome); } catch {}
+    publicarPost(texto, nome);
     setRascunho("");
   };
   return (
@@ -1353,13 +1337,17 @@ function TelaComunidade({ posts, publicarPost, curtidasMinhas, toggleLike, perfi
       <Cabecalho eyebrow="Time & gestão" titulo="Comunidade"
         sub="Dicas, boas práticas e novidades do time. Vamos juntos? 💙" />
       <div style={{ maxWidth: 640 }}>
-        <div className="card" style={{ padding: "14px 18px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center" }}>
-          <Avatar nome={perfil.nome} tam={32} />
-          <input value={rascunho} onChange={e => setRascunho(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") enviar(); }}
-            placeholder="Compartilhe uma dica, automação ou novidade…"
-            style={{ flex: 1, fontSize: 13, color: T.chumbo, background: T.bg, border: `1px solid ${T.linha}`, borderRadius: 20, padding: "10px 16px", transition: "border-color .15s, box-shadow .15s" }} />
-          <button onClick={enviar} disabled={!rascunho.trim()} className="press" style={{ background: rascunho.trim() ? T.azul : T.linha, color: "white", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12.5, fontWeight: 700, cursor: rascunho.trim() ? "pointer" : "not-allowed" }}>Publicar</button>
+        <div className="card" style={{ padding: "14px 18px", marginBottom: 16, display: "grid", gap: 10 }}>
+          <input value={meuNome} onChange={e => setMeuNome(e.target.value)}
+            placeholder="Seu nome"
+            style={{ width: 160, fontSize: 12.5, color: T.chumbo, background: T.bg, border: `1px solid ${T.linha}`, borderRadius: 10, padding: "7px 12px" }} />
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <input value={rascunho} onChange={e => setRascunho(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") enviar(); }}
+              placeholder="Compartilhe uma dica, automação ou novidade…"
+              style={{ flex: 1, fontSize: 13, color: T.chumbo, background: T.bg, border: `1px solid ${T.linha}`, borderRadius: 20, padding: "10px 16px", transition: "border-color .15s, box-shadow .15s" }} />
+            <button onClick={enviar} disabled={!rascunho.trim() || !meuNome.trim()} className="press" style={{ background: rascunho.trim() && meuNome.trim() ? T.azul : T.linha, color: "white", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12.5, fontWeight: 700, cursor: rascunho.trim() && meuNome.trim() ? "pointer" : "not-allowed" }}>Publicar</button>
+          </div>
         </div>
         {posts.length === 0 ? (
           <Vazio titulo="Nenhum post ainda" sub="Seja a primeira pessoa a compartilhar algo com o time." />
@@ -1440,65 +1428,27 @@ function TelaIndicadores({ dores, ideias, projetos, prompts }) {
 
 /* ══════════════════ ADMINISTRAÇÃO ══════════════════ */
 /* Pessoas reais citadas na planilha (quem deu ideia / quem ajudou a construir os agentes). */
-function TelaAdmin({ ehAdmin, meuId }) {
-  const [usuarios, setUsuarios] = useState(null);
-  const [salvandoId, setSalvandoId] = useState(null);
-
-  useEffect(() => {
-    let vivo = true;
-    supabase.from("profiles").select("*").order("criado_em").then(({ data }) => { if (vivo) setUsuarios(data || []); });
-    return () => { vivo = false; };
-  }, []);
-
-  const mudarPapel = async (id, papel) => {
-    setSalvandoId(id);
-    const { error } = await supabase.from("profiles").update({ papel }).eq("id", id);
-    if (!error) setUsuarios(u => u.map(x => x.id === id ? { ...x, papel } : x));
-    setSalvandoId(null);
-  };
-
+function TelaAdmin() {
   return (
     <div>
       <Cabecalho eyebrow="Time & gestão" titulo="Administração"
-        sub="Usuários e papéis reais — cada conta é criada pela própria pessoa e começa como Membro." />
+        sub="O Hub é protegido por uma senha única de equipe — quem tiver a senha tem acesso completo." />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
         <div>
-          <SubTitulo>Usuários & papéis</SubTitulo>
-          {usuarios === null ? (
-            <div style={{ fontSize: 12.5, color: T.cinza }}>Carregando…</div>
-          ) : usuarios.length === 0 ? (
-            <Vazio titulo="Nenhum usuário ainda" sub="As contas aparecem aqui assim que alguém se cadastra no Hub." />
-          ) : (
-          <div className="stagger" style={{ display: "grid", gap: 9 }}>
-            {usuarios.map(u => (
-              <div key={u.id} className="card lift" style={{ display: "flex", alignItems: "center", gap: 13, padding: "13px 16px" }}>
-                <Avatar nome={u.nome} tam={36} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{u.nome}{u.id === meuId && <span style={{ color: T.cinzaClaro, fontWeight: 500 }}> (você)</span>}</div>
-                  <div style={{ fontSize: 11.5, color: T.cinzaClaro }}>Controladoria Jurídica</div>
-                </div>
-                {ehAdmin ? (
-                  <select value={u.papel} disabled={salvandoId === u.id} onChange={e => mudarPapel(u.id, e.target.value)}
-                    style={{ padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.linha}`, fontSize: 12.5, fontWeight: 700, color: u.papel === "admin" ? T.azul : T.chumbo, background: T.surface }}>
-                    <option value="membro">Membro</option>
-                    <option value="editor">Editor(a)</option>
-                    <option value="admin">Administradora</option>
-                  </select>
-                ) : (
-                  <Badge texto={PAPEL_LABEL[u.papel] || u.papel} cor={u.papel === "admin" ? T.azul : T.cinza} />
-                )}
-              </div>
-            ))}
+          <SubTitulo>Senha da equipe</SubTitulo>
+          <div className="card" style={{ padding: 18, fontSize: 12.5, color: T.cinza, lineHeight: 1.6 }}>
+            <p style={{ marginBottom: 10 }}>Para trocar a senha que libera o acesso ao Hub:</p>
+            <ol style={{ paddingLeft: 18, display: "grid", gap: 4 }}>
+              <li>Abra o painel do Supabase do projeto</li>
+              <li>Vá em <strong style={{ color: T.chumbo }}>Authentication → Users</strong></li>
+              <li>Encontre o usuário <strong className="num" style={{ color: T.chumbo }}>{EMAIL_EQUIPE}</strong></li>
+              <li>Clique em "..." → <strong style={{ color: T.chumbo }}>Reset password</strong></li>
+            </ol>
           </div>
-          )}
         </div>
         <div>
           <SubTitulo>Trilha de auditoria</SubTitulo>
-          <Vazio titulo="Sem trilha de auditoria ainda" sub="Um log de ações reais (quem editou o quê e quando) é uma extensão futura — hoje o Hub registra apenas o estado atual dos dados." />
-          <div className="card" style={{ marginTop: 12, padding: 15, fontSize: 12, color: T.cinza, lineHeight: 1.55, border: `1px dashed ${T.linha}`, display: "flex", gap: 10 }}>
-            <Users size={14} color={T.azul} style={{ flexShrink: 0, marginTop: 2 }} />
-            <span>Papéis: <strong style={{ color: T.chumbo }}>Administradora</strong> gerencia dados e usuários · <strong style={{ color: T.chumbo }}>Editor(a)</strong> cria e edita ideias, projetos e agentes · <strong style={{ color: T.chumbo }}>Membro</strong> registra dores, comenta e favorita.{!ehAdmin && " Só uma Administradora pode alterar papéis."}</span>
-          </div>
+          <Vazio titulo="Sem trilha de auditoria ainda" sub="Como o acesso é compartilhado (não há login por pessoa), não é possível registrar quem fez cada ação." />
         </div>
       </div>
     </div>
