@@ -1,0 +1,23 @@
+{
+  "monitorar": [
+    {
+      "chave": "natalia_dalpian_lopes",
+      "termo": "NATALIA DALPIAN LOPES",
+      "tribunais": ["TRT3"]
+    },
+    {
+      "chave": "ll_agro",
+      "termo": "LL AGRO",
+      "tribunais": ["TRT3"]
+    }
+  ],
+  "dias_janela": 10,
+  "email": {
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": 587,
+    "smtp_usuario": "seuemail@gmail.com",
+    "smtp_senha": "sua_senha_de_app",
+    "remetente": "seuemail@gmail.com",
+    "destinatarios": ["bellachaves19@gmail.com"]
+  }
+}

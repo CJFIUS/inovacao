@@ -1,2 +1,7 @@
 node_modules
 dist
+__pycache__
+
+scripts/pje_monitor/config.json
+scripts/pje_monitor/estado_monitor.json
+scripts/pje_monitor/monitor.log
