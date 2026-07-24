@@ -4,7 +4,8 @@ import {
   FolderOpen, BarChart3, Settings, Search, Plus, Copy, Check, Star,
   Heart, MessageCircle, ChevronRight, X, ArrowRight, Link2,
   FileText, Video, Presentation, ExternalLink, TrendingUp, Sparkles,
-  Command, Clock, Users, Zap, LogOut, ShieldCheck
+  Command, Clock, Users, Zap, LogOut, ShieldCheck,
+  Landmark, RefreshCw, AlertTriangle, Building2
 } from "lucide-react";
 import { supabase } from "../src/supabaseClient.js";
 
@@ -28,6 +29,51 @@ const ideiaFromDb = (i) => ({ id: i.id, dorId: i.dor_id, nucleo: i.nucleo, titul
 const projetoFromDb = (p) => ({ id: p.id, dorId: p.dor_id, nucleo: p.nucleo, titulo: p.titulo, equipe: p.equipe, prioridade: p.prioridade, previsao: p.previsao, fase: p.fase });
 const agenteFromDb = (a) => ({ id: a.id, nome: a.nome, nucleo: a.nucleo, objetivo: a.objetivo, criadoPor: a.criado_por, equipe: a.equipe, link: a.link || "" });
 const postFromDb = (p) => ({ id: p.id, autor: p.autor_nome || "Alguém da equipe", likesCount: p.likes_count, criadoEm: p.criado_em });
+const clienteFromDb = (c) => ({ cnpj: c.cnpj, razaoSocial: c.razao_social, apelido: c.apelido, ativo: c.ativo, criadoEm: c.criado_em, ultimaBuscaEm: c.ultima_busca_em });
+const processoFromDb = (p) => ({
+  id: p.id, cnpj: p.cnpj, numeroProcesso: p.numero_processo, tribunal: p.tribunal, orgaoJulgador: p.orgao_julgador,
+  classe: p.classe, assunto: p.assunto, polo: p.polo, parteContraria: p.parte_contraria, dataDistribuicao: p.data_distribuicao,
+  situacao: p.situacao, status: p.status, fonte: p.fonte, encontradoEm: p.encontrado_em, tratadoEm: p.tratado_em, observacoes: p.observacoes,
+});
+const buscaFromDb = (b) => ({
+  id: b.id, cnpj: b.cnpj, executadaEm: b.executada_em, tribunal: b.tribunal, status: b.status,
+  processosEncontrados: b.processos_encontrados, processosNovos: b.processos_novos, mensagem: b.mensagem,
+});
+
+/* ───────── Rastreamento de ações judiciais: utilitários de CNPJ e status ───────── */
+const STATUS_PROCESSO = {
+  novo: { rotulo: "Nova ação", cor: T.vermelho },
+  em_analise: { rotulo: "Em análise", cor: T.laranja },
+  tratado: { rotulo: "Tratado", cor: T.verde },
+  descartado: { rotulo: "Descartado", cor: T.cinza },
+};
+const corStatusProcesso = (s) => (STATUS_PROCESSO[s] || STATUS_PROCESSO.novo).cor;
+const rotuloStatusProcesso = (s) => (STATUS_PROCESSO[s] || STATUS_PROCESSO.novo).rotulo;
+
+function limparCnpj(v) { return (v || "").replace(/\D/g, ""); }
+function formatarCnpj(v) {
+  const d = limparCnpj(v);
+  if (d.length !== 14) return v || "";
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
+}
+function validarCnpj(v) {
+  const d = limparCnpj(v);
+  if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+  const digitos = d.split("").map(Number);
+  const calc = (base) => {
+    let soma = 0, pos = base.length - 7;
+    for (let i = 0; i < base.length; i++) { soma += base[i] * pos--; if (pos < 2) pos = 9; }
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+  const dv1 = calc(digitos.slice(0, 12));
+  const dv2 = calc(digitos.slice(0, 12).concat(dv1));
+  return dv1 === digitos[12] && dv2 === digitos[13];
+}
+function dataFormatada(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
 
 /* Sem prompts registrados ainda — a biblioteca começa vazia até o time cadastrar o primeiro. */
 const SEED_PROMPTS = [];
@@ -45,6 +91,9 @@ const corAutor = { Isa: T.azul, Bruna: T.roxo, Clara: T.verde, Lilian: T.laranja
 
 const NAV = [
   { grupo: "Visão geral", itens: [{ id: "home", nome: "Painel Geral", icone: Home }] },
+  { grupo: "Monitoramento judicial", itens: [
+    { id: "rastreamento", nome: "Rastreamento de Ações", icone: Landmark },
+  ]},
   { grupo: "Fluxo da dor", itens: [
     { id: "dores", nome: "Radar de Dores", icone: Flame },
     { id: "ideias", nome: "Banco de Ideias", icone: Lightbulb },
@@ -199,6 +248,16 @@ function HubAutenticado({ sessao, perfil }) {
   const [paleta, setPaleta] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // ── Rastreamento de ações judiciais ──
+  const [clientesMonitorados, setClientesMonitorados] = useState([]);
+  const [processosMonitorados, setProcessosMonitorados] = useState([]);
+  const [buscasHistorico, setBuscasHistorico] = useState([]);
+  const [modalCnpj, setModalCnpj] = useState(false);
+  const [modalBusca, setModalBusca] = useState(null);
+  const [processoSelecionado, setProcessoSelecionado] = useState(null);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
+  const [buscandoCnpj, setBuscandoCnpj] = useState(null);
+
   // Acesso é por senha única de equipe — todo mundo que entra tem o mesmo nível de acesso.
   const podeEditar = true;
   const ehAdmin = true;
@@ -206,13 +265,16 @@ function HubAutenticado({ sessao, perfil }) {
   useEffect(() => {
     let vivo = true;
     (async () => {
-      const [rDores, rIdeias, rProjetos, rAgentes, rPosts, rCurtidas] = await Promise.all([
+      const [rDores, rIdeias, rProjetos, rAgentes, rPosts, rCurtidas, rClientes, rProcessos, rBuscas] = await Promise.all([
         supabase.from("dores").select("*").order("id"),
         supabase.from("ideias").select("*").order("id"),
         supabase.from("projetos").select("*").order("id"),
         supabase.from("agentes").select("*").order("id"),
         supabase.from("posts").select("*").order("criado_em", { ascending: false }),
         supabase.from("curtidas").select("post_id").eq("usuario_id", sessao.user.id),
+        supabase.from("clientes_monitorados").select("*").order("criado_em", { ascending: false }),
+        supabase.from("processos_monitorados").select("*").order("encontrado_em", { ascending: false }),
+        supabase.from("buscas_historico").select("*").order("executada_em", { ascending: false }).limit(200),
       ]);
       if (!vivo) return;
       setDores((rDores.data || []).map(dorFromDb));
@@ -221,6 +283,9 @@ function HubAutenticado({ sessao, perfil }) {
       setAgentes((rAgentes.data || []).map(agenteFromDb));
       setPosts((rPosts.data || []).map(postFromDb));
       setCurtidasMinhas(Object.fromEntries((rCurtidas.data || []).map(c => [c.post_id, true])));
+      setClientesMonitorados((rClientes.data || []).map(clienteFromDb));
+      setProcessosMonitorados((rProcessos.data || []).map(processoFromDb));
+      setBuscasHistorico((rBuscas.data || []).map(buscaFromDb));
       setCarregandoDados(false);
     })();
     return () => { vivo = false; };
@@ -229,7 +294,10 @@ function HubAutenticado({ sessao, perfil }) {
   useEffect(() => {
     const h = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPaleta(p => !p); }
-      if (e.key === "Escape") { setPaleta(false); setDorSelecionada(null); setModalDor(false); }
+      if (e.key === "Escape") {
+        setPaleta(false); setDorSelecionada(null); setModalDor(false);
+        setModalCnpj(false); setModalBusca(null); setProcessoSelecionado(null); setHistoricoAberto(false);
+      }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
@@ -286,23 +354,115 @@ function HubAutenticado({ sessao, perfil }) {
     }
   };
 
+  // ── Rastreamento de ações judiciais ──
+  const registrarCliente = async ({ cnpj, razaoSocial, apelido }) => {
+    const { data, error } = await supabase.from("clientes_monitorados")
+      .insert({ cnpj, razao_social: razaoSocial, apelido }).select("*").single();
+    if (error) { notificar("Não deu para cadastrar: " + error.message); return; }
+    setClientesMonitorados(c => [clienteFromDb(data), ...c]);
+    setModalCnpj(false);
+    notificar(`${apelido || formatarCnpj(cnpj)} entrou no monitoramento`);
+  };
+
+  const registrarResultadoBusca = async (cnpj, tribunal, linhas) => {
+    const existentes = new Set(processosMonitorados.filter(p => p.cnpj === cnpj).map(p => p.numeroProcesso));
+    const novasLinhas = linhas.filter(l => !existentes.has(l.numeroProcesso.trim()));
+    const jaConhecidas = linhas.length - novasLinhas.length;
+
+    if (novasLinhas.length > 0) {
+      const { data, error } = await supabase.from("processos_monitorados").insert(
+        novasLinhas.map(l => ({
+          cnpj, numero_processo: l.numeroProcesso.trim(), tribunal, classe: l.classe, assunto: l.assunto,
+          polo: l.polo, parte_contraria: l.parteContraria, data_distribuicao: l.dataDistribuicao || null,
+          status: "novo", fonte: "Busca manual",
+        }))
+      ).select("*");
+      if (error) { notificar("Não deu para registrar os processos: " + error.message); return; }
+      setProcessosMonitorados(p => [...(data || []).map(processoFromDb), ...p]);
+    }
+
+    const { data: buscaSalva, error: erroBusca } = await supabase.from("buscas_historico").insert({
+      cnpj, tribunal, status: linhas.length > 0 ? "sucesso" : "sem_resultado",
+      processos_encontrados: linhas.length, processos_novos: novasLinhas.length,
+      mensagem: jaConhecidas > 0 ? `${jaConhecidas} já conhecido(s)` : "",
+    }).select("*").single();
+    if (!erroBusca) setBuscasHistorico(b => [buscaFromDb(buscaSalva), ...b]);
+
+    const agora = new Date().toISOString();
+    await supabase.from("clientes_monitorados").update({ ultima_busca_em: agora }).eq("cnpj", cnpj);
+    setClientesMonitorados(cs => cs.map(c => c.cnpj === cnpj ? { ...c, ultimaBuscaEm: agora } : c));
+
+    setModalBusca(null);
+    notificar(novasLinhas.length > 0 ? `${novasLinhas.length} nova(s) ação(ões) encontrada(s)!` : "Busca registrada — nenhuma novidade.");
+  };
+
+  const registrarBuscaSemNovidade = async (cnpj) => {
+    const { data, error } = await supabase.from("buscas_historico").insert({
+      cnpj, tribunal: "Todos", status: "sem_resultado", processos_encontrados: 0, processos_novos: 0,
+    }).select("*").single();
+    if (error) { notificar("Não deu para registrar: " + error.message); return; }
+    setBuscasHistorico(b => [buscaFromDb(data), ...b]);
+    const agora = new Date().toISOString();
+    await supabase.from("clientes_monitorados").update({ ultima_busca_em: agora }).eq("cnpj", cnpj);
+    setClientesMonitorados(cs => cs.map(c => c.cnpj === cnpj ? { ...c, ultimaBuscaEm: agora } : c));
+    notificar("Busca registrada — sem novidades hoje");
+  };
+
+  const atualizarStatusProcesso = async (id, status, observacoes) => {
+    const tratadoEm = (status === "tratado" || status === "descartado") ? new Date().toISOString() : null;
+    const { error } = await supabase.from("processos_monitorados")
+      .update({ status, observacoes, tratado_em: tratadoEm }).eq("id", id);
+    if (error) { notificar("Não deu para atualizar: " + error.message); return; }
+    setProcessosMonitorados(ps => ps.map(p => p.id === id ? { ...p, status, observacoes, tratadoEm } : p));
+    setProcessoSelecionado(p => p && p.id === id ? { ...p, status, observacoes, tratadoEm } : p);
+    notificar("Status atualizado");
+  };
+
+  const buscarAutomatico = async (cnpj) => {
+    setBuscandoCnpj(cnpj);
+    try {
+      const { data, error } = await supabase.functions.invoke("buscar-processos", { body: { cnpj } });
+      if (error || !data?.ok) {
+        notificar((data && data.erro) || "Integração automática ainda não configurada — use \"Registrar resultado de busca\".");
+        return;
+      }
+      const [rProcessos, rHistorico, rCliente] = await Promise.all([
+        supabase.from("processos_monitorados").select("*").eq("cnpj", cnpj),
+        supabase.from("buscas_historico").select("*").eq("cnpj", cnpj).order("executada_em", { ascending: false }),
+        supabase.from("clientes_monitorados").select("*").eq("cnpj", cnpj).single(),
+      ]);
+      if (rProcessos.data) setProcessosMonitorados(ps => [...ps.filter(p => p.cnpj !== cnpj), ...rProcessos.data.map(processoFromDb)]);
+      if (rHistorico.data) setBuscasHistorico(bs => [...rHistorico.data.map(buscaFromDb), ...bs.filter(b => b.cnpj !== cnpj)]);
+      if (rCliente.data) setClientesMonitorados(cs => cs.map(c => c.cnpj === cnpj ? clienteFromDb(rCliente.data) : c));
+      notificar(`Busca automática: ${data.novos} nova(s) ação(ões) de ${data.encontrados} encontrada(s)`);
+    } catch (e) {
+      notificar("Não deu para completar a busca automática: " + String(e?.message || e));
+    } finally {
+      setBuscandoCnpj(null);
+    }
+  };
+
   const sair = () => supabase.auth.signOut();
 
   const props = {
     dores, ideias, projetos, prompts, agentes, posts, publicarPost, favoritos, toggleFav,
     copiado, copiarPrompt, curtidasMinhas, toggleLike, ideiasDe, projetosDe,
     setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar, podeEditar, ehAdmin, perfil,
+    clientesMonitorados, processosMonitorados, buscasHistorico, buscandoCnpj,
+    setModalCnpj, setModalBusca, setProcessoSelecionado, setHistoricoAberto,
+    registrarBuscaSemNovidade, buscarAutomatico,
   };
 
   return (
     <div style={{ fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", background: T.bg, minHeight: "100vh", display: "flex", color: T.chumbo }}>
       <EstilosGlobais />
-      <Sidebar tela={tela} setTela={setTela} onSair={sair} />
+      <Sidebar tela={tela} setTela={setTela} onSair={sair} alertas={{ rastreamento: processosMonitorados.filter(p => p.status === "novo").length }} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Topbar abrirPaleta={() => setPaleta(true)} setModalDor={setModalDor} />
         <main key={tela} className="pagina" style={{ flex: 1, padding: "26px 34px 48px", maxWidth: 1180, width: "100%", margin: "0 auto" }}>
           {carregandoDados ? <TelaCarregando /> : <>
             {tela === "home" && <TelaHome {...props} />}
+            {tela === "rastreamento" && <TelaRastreamento {...props} />}
             {tela === "dores" && <TelaDores {...props} />}
             {tela === "ideias" && <TelaIdeias {...props} />}
             {tela === "projetos" && <TelaProjetos {...props} />}
@@ -321,6 +481,10 @@ function HubAutenticado({ sessao, perfil }) {
       {dorSelecionada && <DrawerDor dor={dorSelecionada} ideias={ideiasDe(dorSelecionada.id)} projetos={projetosDe(dorSelecionada.id)} onClose={() => setDorSelecionada(null)} />}
       {agenteSelecionado && <DrawerAgente agente={agenteSelecionado} podeEditar={podeEditar} onSalvarLink={salvarLinkAgente} onClose={() => setAgenteSelecionado(null)} />}
       {modalDor && <ModalNovaDor onSalvar={registrarDor} onClose={() => setModalDor(false)} proximo={`DOR-0${36 + dores.length - 5}`} />}
+      {modalCnpj && <ModalNovoCliente onSalvar={registrarCliente} onClose={() => setModalCnpj(false)} />}
+      {modalBusca && <ModalRegistrarBusca cnpj={modalBusca} cliente={clientesMonitorados.find(c => c.cnpj === modalBusca)} onSalvar={registrarResultadoBusca} onClose={() => setModalBusca(null)} />}
+      {processoSelecionado && <DrawerProcesso processo={processoSelecionado} cliente={clientesMonitorados.find(c => c.cnpj === processoSelecionado.cnpj)} onAtualizarStatus={atualizarStatusProcesso} onClose={() => setProcessoSelecionado(null)} />}
+      {historicoAberto && <DrawerHistorico buscas={buscasHistorico} clientesMonitorados={clientesMonitorados} onClose={() => setHistoricoAberto(false)} />}
       {toast && <Toast msg={toast} />}
     </div>
   );
@@ -341,6 +505,8 @@ function EstilosGlobais() {
       @keyframes pop { 0% { transform: scale(1); } 45% { transform: scale(1.35); } 100% { transform: scale(1); } }
       @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
       @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(0,158,219,.35);} 60% { box-shadow: 0 0 0 7px rgba(0,158,219,0);} }
+      @keyframes girar { to { transform: rotate(360deg); } }
+      .girando { animation: girar .9s linear infinite; }
 
       .pagina { animation: fadeUp .32s cubic-bezier(.2,.7,.3,1) both; }
       .stagger > * { animation: fadeUp .4s cubic-bezier(.2,.7,.3,1) both; }
@@ -389,7 +555,7 @@ function EstilosGlobais() {
 }
 
 /* ══════════════════ ESTRUTURA ══════════════════ */
-function Sidebar({ tela, setTela, onSair }) {
+function Sidebar({ tela, setTela, onSair, alertas = {} }) {
   return (
     <aside style={{ width: 248, background: T.surface, borderRight: `1px solid ${T.linha}`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
       <div style={{ padding: "20px 22px 16px", display: "flex", alignItems: "center", gap: 11 }}>
@@ -406,12 +572,15 @@ function Sidebar({ tela, setTela, onSair }) {
           <div key={g.grupo} style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".1em", textTransform: "uppercase", padding: "8px 12px 5px" }}>{g.grupo}</div>
             {g.itens.map(m => {
-              const Ic = m.icone; const ativo = tela === m.id;
+              const Ic = m.icone; const ativo = tela === m.id; const alerta = alertas[m.id] || 0;
               return (
                 <button key={m.id} onClick={() => setTela(m.id)} className={`nav-btn press ${ativo ? "nav-ativo" : ""}`}
                   style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 12px", border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 500, textAlign: "left", background: "transparent", color: T.cinza, marginBottom: 1 }}>
                   <Ic size={17} color={ativo ? T.azul : T.cinzaClaro} strokeWidth={ativo ? 2.2 : 2} />
-                  {m.nome}
+                  <span style={{ flex: 1 }}>{m.nome}</span>
+                  {alerta > 0 && (
+                    <span className="num" style={{ background: T.vermelho, color: "white", fontSize: 10, fontWeight: 800, borderRadius: 20, padding: "1px 6px", minWidth: 16, textAlign: "center" }}>{alerta}</span>
+                  )}
                 </button>
               );
             })}
@@ -572,10 +741,11 @@ function Paleta({ fechar, setTela, dores, ideias, projetos, prompts }) {
 }
 
 /* ══════════════════ HOME ══════════════════ */
-function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, ideiasDe }) {
+function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, ideiasDe, processosMonitorados = [] }) {
   const semIdeia = dores.filter(d => ideiasDe(d.id).length === 0).length;
   const ideiasVinculadas = ideias.filter(i => i.dorId).length;
   const projetosVinculados = projetos.filter(p => p.dorId).length;
+  const novasAcoes = processosMonitorados.filter(p => p.status === "novo").length;
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   return (
@@ -588,6 +758,17 @@ function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, i
             : "Todas as dores do radar têm pelo menos uma ideia ancorada. Excelente sinal."}
         </p>
       </div>
+
+      {novasAcoes > 0 && (
+        <div className="card" style={{ padding: "16px 20px", marginBottom: 18, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", border: `1px solid ${T.vermelho}33`, background: T.vermelho + "0c" }}>
+          <AlertTriangle size={20} color={T.vermelho} />
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontWeight: 800, color: T.vermelho }}>{novasAcoes} {novasAcoes === 1 ? "nova ação judicial" : "novas ações judiciais"} aguardando triagem</div>
+            <div style={{ fontSize: 12.5, color: T.cinza, marginTop: 2 }}>Encontradas no monitoramento de CNPJs dos clientes — dá uma olhada no Rastreamento de Ações.</div>
+          </div>
+          <button onClick={() => setTela("rastreamento")} className="press" style={{ padding: "9px 16px", borderRadius: 9, border: "none", background: T.vermelho, color: "white", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Ver ações</button>
+        </div>
+      )}
 
       {/* Funil vivo: a espinha dorsal do CJ INOVA */}
       <div className="card" style={{ padding: "22px 26px", marginBottom: 18 }}>
@@ -1420,6 +1601,366 @@ function TelaIndicadores({ dores, ideias, projetos, prompts }) {
               <Barra pct={Math.min(100, (m.valor / m.meta) * 100)} cor={m.cor} />
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ RASTREAMENTO DE AÇÕES JUDICIAIS ══════════════════ */
+function TelaRastreamento({
+  clientesMonitorados, processosMonitorados, buscasHistorico, buscandoCnpj,
+  setModalCnpj, setModalBusca, setProcessoSelecionado, setHistoricoAberto,
+  registrarBuscaSemNovidade, buscarAutomatico,
+}) {
+  const [clienteFiltro, setClienteFiltro] = useState(null);
+  const [statusFiltro, setStatusFiltro] = useState("Todos");
+  const [busca, setBusca] = useState("");
+
+  const statusOpcoes = ["Todos", "novo", "em_analise", "tratado", "descartado"];
+  const novosTotais = processosMonitorados.filter(p => p.status === "novo").length;
+
+  const processosFiltrados = processosMonitorados
+    .filter(p => !clienteFiltro || p.cnpj === clienteFiltro)
+    .filter(p => statusFiltro === "Todos" || p.status === statusFiltro)
+    .filter(p => (p.numeroProcesso + p.tribunal + p.assunto + p.classe).toLowerCase().includes(busca.toLowerCase()))
+    .sort((a, b) => new Date(b.encontradoEm) - new Date(a.encontradoEm));
+
+  const clienteAtivo = clienteFiltro ? clientesMonitorados.find(c => c.cnpj === clienteFiltro) : null;
+
+  return (
+    <div>
+      <Cabecalho eyebrow="Monitoramento judicial" titulo="Rastreamento de Ações"
+        sub="Monitoramento dos CNPJs dos clientes nos Tribunais, para identificar de forma proativa novas ações distribuídas — antes que cheguem por fora."
+        extra={
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setHistoricoAberto(true)} className="press" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 15px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.surface, fontSize: 12.5, fontWeight: 700, cursor: "pointer", color: T.chumbo }}>
+              <Clock size={14} /> Histórico de buscas
+            </button>
+            <button onClick={() => setModalCnpj(true)} className="press lift" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: "none", background: T.azul, color: "white", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+              <Plus size={15} strokeWidth={2.6} /> Monitorar CNPJ
+            </button>
+          </div>
+        } />
+
+      {novosTotais > 0 && (
+        <div className="card" style={{ padding: "14px 18px", marginBottom: 18, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", border: `1px solid ${T.vermelho}33`, background: T.vermelho + "0c" }}>
+          <AlertTriangle size={18} color={T.vermelho} />
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <strong style={{ color: T.vermelho }}>{novosTotais} {novosTotais === 1 ? "nova ação encontrada" : "novas ações encontradas"}</strong>
+            <span style={{ color: T.cinza }}> ainda sem triagem.</span>
+          </div>
+          <button onClick={() => setStatusFiltro("novo")} className="press" style={{ padding: "7px 13px", borderRadius: 8, border: "none", background: T.vermelho, color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Ver agora</button>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 18, alignItems: "start" }}>
+        {/* Coluna: CNPJs monitorados */}
+        <div className="card" style={{ padding: 14, position: "sticky", top: 78 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 10, padding: "0 4px" }}>CNPJs monitorados</div>
+          {clientesMonitorados.length === 0 ? (
+            <div style={{ padding: "18px 10px", fontSize: 12, color: T.cinza, textAlign: "center" }}>Nenhum CNPJ cadastrado ainda.</div>
+          ) : (
+            <div style={{ display: "grid", gap: 6 }}>
+              <button onClick={() => setClienteFiltro(null)} className="press"
+                style={{ textAlign: "left", padding: "9px 10px", borderRadius: 9, border: "none", cursor: "pointer", background: !clienteFiltro ? T.azulTint : "transparent", color: !clienteFiltro ? T.azulEscuro : T.chumbo, fontSize: 12.5, fontWeight: !clienteFiltro ? 700 : 500, display: "flex", justifyContent: "space-between" }}>
+                Todos os clientes
+                <span className="num" style={{ color: T.cinzaClaro }}>{processosMonitorados.length}</span>
+              </button>
+              {clientesMonitorados.map(c => {
+                const nProc = processosMonitorados.filter(p => p.cnpj === c.cnpj).length;
+                const nNovo = processosMonitorados.filter(p => p.cnpj === c.cnpj && p.status === "novo").length;
+                const ativo = clienteFiltro === c.cnpj;
+                return (
+                  <button key={c.cnpj} onClick={() => setClienteFiltro(c.cnpj)} className="press"
+                    style={{ textAlign: "left", padding: "9px 10px", borderRadius: 9, border: "none", cursor: "pointer", background: ativo ? T.azulTint : "transparent", color: ativo ? T.azulEscuro : T.chumbo }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: ativo ? 700 : 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.apelido || c.razaoSocial || formatarCnpj(c.cnpj)}</span>
+                      {nNovo > 0 && <span className="num" style={{ background: T.vermelho, color: "white", fontSize: 10, fontWeight: 800, borderRadius: 20, padding: "1px 6px" }}>{nNovo}</span>}
+                    </div>
+                    <div className="num" style={{ fontSize: 10.5, color: T.cinzaClaro, marginTop: 2 }}>{formatarCnpj(c.cnpj)} · {nProc} proc.</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Coluna: processos encontrados */}
+        <div>
+          {clienteAtivo && (
+            <div className="card" style={{ padding: "14px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <Building2 size={18} color={T.azul} />
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700 }}>{clienteAtivo.apelido || clienteAtivo.razaoSocial || "Cliente"}</div>
+                <div className="num" style={{ fontSize: 11.5, color: T.cinza }}>{formatarCnpj(clienteAtivo.cnpj)} · última busca: {clienteAtivo.ultimaBuscaEm ? dataFormatada(clienteAtivo.ultimaBuscaEm) : "ainda não pesquisado"}</div>
+              </div>
+              <button onClick={() => registrarBuscaSemNovidade(clienteAtivo.cnpj)} className="press" style={{ padding: "8px 13px", borderRadius: 9, border: `1px solid ${T.linha}`, background: T.surface, fontSize: 12, fontWeight: 700, cursor: "pointer", color: T.chumbo }}>Sem novidade hoje</button>
+              <button onClick={() => buscarAutomatico(clienteAtivo.cnpj)} disabled={buscandoCnpj === clienteAtivo.cnpj} className="press" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9, border: `1px solid ${T.linha}`, background: T.surface, fontSize: 12, fontWeight: 700, cursor: buscandoCnpj === clienteAtivo.cnpj ? "wait" : "pointer", color: T.chumbo }}>
+                <RefreshCw size={13} className={buscandoCnpj === clienteAtivo.cnpj ? "girando" : ""} /> Buscar automaticamente
+              </button>
+              <button onClick={() => setModalBusca(clienteAtivo.cnpj)} className="press lift" style={{ padding: "8px 15px", borderRadius: 9, border: "none", background: T.azul, color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Registrar resultado de busca</button>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+            <CampoBusca valor={busca} onChange={setBusca} placeholder="Buscar por número, tribunal ou assunto" />
+            {statusOpcoes.map(s => (
+              <Chip key={s} ativo={statusFiltro === s} onClick={() => setStatusFiltro(s)}>
+                {s === "Todos" ? "Todos" : rotuloStatusProcesso(s)}
+              </Chip>
+            ))}
+          </div>
+
+          {processosFiltrados.length === 0 ? (
+            <Vazio titulo="Nenhum processo aqui"
+              sub={clientesMonitorados.length === 0 ? "Cadastre um CNPJ para começar a monitorar." : "Registre o resultado de uma busca para consolidar os processos encontrados no painel."}
+              acao={<button onClick={() => setModalCnpj(true)} className="press" style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: T.azul, color: "white", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Monitorar CNPJ</button>} />
+          ) : (
+            <div className="stagger" style={{ display: "grid", gap: 10 }}>
+              {processosFiltrados.map(p => {
+                const cliente = clientesMonitorados.find(c => c.cnpj === p.cnpj);
+                return (
+                  <div key={p.id} onClick={() => setProcessoSelecionado(p)} className="card lift press" style={{ padding: "14px 18px", cursor: "pointer" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1, minWidth: 220 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+                          <span className="num" style={{ fontSize: 12, fontWeight: 700, color: T.azulEscuro }}>{p.numeroProcesso}</span>
+                          <Badge texto={rotuloStatusProcesso(p.status)} cor={corStatusProcesso(p.status)} solido={p.status === "novo"} />
+                        </div>
+                        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{p.classe || "Classe não informada"}{p.assunto ? ` · ${p.assunto}` : ""}</div>
+                        <div style={{ fontSize: 11.5, color: T.cinza, marginTop: 3 }}>
+                          {cliente ? (cliente.apelido || cliente.razaoSocial || formatarCnpj(cliente.cnpj)) : formatarCnpj(p.cnpj)} · {p.tribunal || "tribunal não informado"}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div className="num" style={{ fontSize: 11, color: T.cinzaClaro }}>identificado em</div>
+                        <div className="num" style={{ fontSize: 12.5, fontWeight: 800 }}>{dataFormatada(p.encontradoEm)}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DrawerProcesso({ processo, cliente, onClose, onAtualizarStatus }) {
+  const [observacoes, setObservacoes] = useState(processo.observacoes || "");
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.42)", display: "flex", justifyContent: "flex-end", zIndex: 100, animation: "veil .18s ease both" }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "min(480px,100%)", background: T.bg, height: "100%", overflowY: "auto", animation: "slideDrawer .28s cubic-bezier(.2,.7,.3,1) both", boxShadow: "-16px 0 48px rgba(17,29,48,.18)" }}>
+        <div style={{ background: T.surface, borderBottom: `1px solid ${T.linha}`, padding: "22px 26px", position: "sticky", top: 0, zIndex: 2 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <Badge texto={rotuloStatusProcesso(processo.status)} cor={corStatusProcesso(processo.status)} solido />
+            <button onClick={onClose} className="press" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza }}><X size={16} /></button>
+          </div>
+          <h2 className="bracket num" style={{ fontSize: 17, fontWeight: 800 }}>{processo.numeroProcesso}</h2>
+          <div style={{ fontSize: 12.5, color: T.cinza, marginTop: 6 }}>{cliente ? (cliente.apelido || cliente.razaoSocial) : ""} · {formatarCnpj(processo.cnpj)}</div>
+        </div>
+        <div style={{ padding: "22px 26px", display: "grid", gap: 16 }}>
+          <div className="card" style={{ padding: 16, display: "grid", gap: 10, fontSize: 13 }}>
+            <LinhaDetalhe label="Tribunal" valor={processo.tribunal || "—"} />
+            <LinhaDetalhe label="Órgão julgador" valor={processo.orgaoJulgador || "—"} />
+            <LinhaDetalhe label="Classe" valor={processo.classe || "—"} />
+            <LinhaDetalhe label="Assunto" valor={processo.assunto || "—"} />
+            <LinhaDetalhe label="Polo do cliente" valor={processo.polo || "—"} />
+            <LinhaDetalhe label="Parte contrária" valor={processo.parteContraria || "—"} />
+            <LinhaDetalhe label="Situação" valor={processo.situacao || "—"} />
+            <LinhaDetalhe label="Data de distribuição" valor={processo.dataDistribuicao ? dataFormatada(processo.dataDistribuicao) : "—"} />
+            <LinhaDetalhe label="Identificado em" valor={dataFormatada(processo.encontradoEm)} />
+            <LinhaDetalhe label="Fonte" valor={processo.fonte || "—"} />
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 8 }}>Triagem</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {Object.keys(STATUS_PROCESSO).map(s => (
+                <button key={s} onClick={() => onAtualizarStatus(processo.id, s, observacoes)} className="press"
+                  style={{ padding: "8px 13px", borderRadius: 9, border: processo.status === s ? "none" : `1px solid ${T.linha}`, background: processo.status === s ? corStatusProcesso(s) : T.surface, color: processo.status === s ? "white" : T.chumbo, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  {rotuloStatusProcesso(s)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Rotulo>Observações internas</Rotulo>
+            <textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} rows={4}
+              placeholder="Ex: já cadastrado no Espaider sob a pasta 1234, encaminhado para Fulano…"
+              style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface, resize: "vertical", lineHeight: 1.5 }} />
+            <button onClick={() => onAtualizarStatus(processo.id, processo.status, observacoes)} disabled={observacoes === (processo.observacoes || "")} className="press"
+              style={{ marginTop: 8, padding: "9px 16px", borderRadius: 9, border: "none", fontSize: 12.5, fontWeight: 700, color: "white", cursor: "pointer", background: observacoes !== (processo.observacoes || "") ? T.azul : T.linha }}>
+              Salvar observações
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function LinhaDetalhe({ label, valor }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, paddingBottom: 8, borderBottom: `1px solid ${T.linhaSoft}` }}>
+      <span style={{ color: T.cinzaClaro, fontSize: 12 }}>{label}</span>
+      <span style={{ fontWeight: 600, textAlign: "right" }}>{valor}</span>
+    </div>
+  );
+}
+
+function ModalNovoCliente({ onSalvar, onClose }) {
+  const [cnpj, setCnpj] = useState("");
+  const [razaoSocial, setRazaoSocial] = useState("");
+  const [apelido, setApelido] = useState("");
+  const cnpjLimpo = limparCnpj(cnpj);
+  const valido = validarCnpj(cnpjLimpo);
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: 18, animation: "veil .18s ease both" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: 18, width: "min(440px,100%)", overflow: "hidden", animation: "fadeUp .24s cubic-bezier(.2,.7,.3,1) both", boxShadow: "0 24px 64px rgba(17,29,48,.25)" }}>
+        <div style={{ padding: "20px 26px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <h2 className="bracket" style={{ fontSize: 17, fontWeight: 800 }}>Monitorar novo CNPJ</h2>
+          <button onClick={onClose} className="press" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza }}><X size={16} /></button>
+        </div>
+        <div style={{ padding: "18px 26px 24px", display: "grid", gap: 15 }}>
+          <p style={{ fontSize: 12.5, color: T.cinza, lineHeight: 1.5 }}>O CNPJ passa a aparecer no radar de rastreamento para receber os resultados das buscas nos Tribunais.</p>
+          <div>
+            <Rotulo>CNPJ do cliente</Rotulo>
+            <input value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="01.340.384/0001-54"
+              style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${cnpjLimpo.length === 14 && !valido ? T.vermelho : T.linha}`, fontSize: 13.5, background: T.surface }} />
+            {cnpjLimpo.length === 14 && !valido && <div style={{ fontSize: 11.5, color: T.vermelho, marginTop: 5 }}>CNPJ inválido — confira os números.</div>}
+          </div>
+          <div>
+            <Rotulo>Apelido (como aparece no painel)</Rotulo>
+            <input value={apelido} onChange={e => setApelido(e.target.value)} placeholder="Ex: Cliente ABC"
+              style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface }} />
+          </div>
+          <div>
+            <Rotulo>Razão social (opcional)</Rotulo>
+            <input value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} placeholder="Razão social completa"
+              style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface }} />
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button onClick={onClose} className="press" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.surface, fontSize: 13, fontWeight: 700, cursor: "pointer", color: T.chumbo }}>Cancelar</button>
+            <button disabled={!valido} onClick={() => onSalvar({ cnpj: cnpjLimpo, razaoSocial: razaoSocial.trim(), apelido: apelido.trim() })} className="press"
+              style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: valido ? T.azul : T.linha, color: "white", fontSize: 13, fontWeight: 700, cursor: valido ? "pointer" : "not-allowed" }}>
+              Começar a monitorar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalRegistrarBusca({ cnpj, cliente, onSalvar, onClose }) {
+  const linhaVazia = () => ({ key: Math.random().toString(36).slice(2), numeroProcesso: "", classe: "", assunto: "", polo: "", parteContraria: "", dataDistribuicao: "" });
+  const [tribunal, setTribunal] = useState("");
+  const [linhas, setLinhas] = useState([linhaVazia()]);
+
+  const atualizarLinha = (key, campo, valor) => setLinhas(ls => ls.map(l => l.key === key ? { ...l, [campo]: valor } : l));
+  const adicionarLinha = () => setLinhas(ls => [...ls, linhaVazia()]);
+  const removerLinha = (key) => setLinhas(ls => ls.length > 1 ? ls.filter(l => l.key !== key) : ls);
+
+  const validas = linhas.filter(l => l.numeroProcesso.trim());
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: 18, animation: "veil .18s ease both" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: T.surface, borderRadius: 18, width: "min(720px,100%)", maxHeight: "88vh", display: "flex", flexDirection: "column", overflow: "hidden", animation: "fadeUp .24s cubic-bezier(.2,.7,.3,1) both", boxShadow: "0 24px 64px rgba(17,29,48,.25)" }}>
+        <div style={{ padding: "20px 26px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <h2 className="bracket" style={{ fontSize: 17, fontWeight: 800 }}>Registrar resultado de busca</h2>
+            <div style={{ fontSize: 12, color: T.cinza, marginTop: 4 }}>{cliente ? (cliente.apelido || cliente.razaoSocial) : ""} · {formatarCnpj(cnpj)}</div>
+          </div>
+          <button onClick={onClose} className="press" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza }}><X size={16} /></button>
+        </div>
+        <div style={{ padding: "18px 26px", overflowY: "auto", flex: 1, display: "grid", gap: 14 }}>
+          <p style={{ fontSize: 12.5, color: T.cinza, lineHeight: 1.5 }}>Lance aqui o que foi encontrado na consulta ao Tribunal (certidão ou pesquisa processual). Processos já conhecidos são reconhecidos automaticamente — só os números novos ficam sinalizados como <strong style={{ color: T.vermelho }}>nova ação</strong>.</p>
+          <div>
+            <Rotulo>Tribunal / fonte da consulta</Rotulo>
+            <input value={tribunal} onChange={e => setTribunal(e.target.value)} placeholder="Ex: TJSP, TRT-2, TST, PJe…"
+              style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface }} />
+          </div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            {linhas.map((l, i) => (
+              <div key={l.key} className="card" style={{ padding: 14, display: "grid", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.cinzaClaro }}>PROCESSO {i + 1}</span>
+                  {linhas.length > 1 && <button onClick={() => removerLinha(l.key)} className="press" style={{ background: "none", border: "none", color: T.cinzaClaro, cursor: "pointer", fontSize: 11 }}>remover</button>}
+                </div>
+                <input value={l.numeroProcesso} onChange={e => atualizarLinha(l.key, "numeroProcesso", e.target.value)} placeholder="Número do processo (CNJ)"
+                  style={{ width: "100%", padding: "9px 12px", borderRadius: 9, border: `1px solid ${T.linha}`, fontSize: 12.5, background: T.bg }} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <input value={l.classe} onChange={e => atualizarLinha(l.key, "classe", e.target.value)} placeholder="Classe"
+                    style={{ padding: "9px 12px", borderRadius: 9, border: `1px solid ${T.linha}`, fontSize: 12.5, background: T.bg }} />
+                  <input value={l.assunto} onChange={e => atualizarLinha(l.key, "assunto", e.target.value)} placeholder="Assunto"
+                    style={{ padding: "9px 12px", borderRadius: 9, border: `1px solid ${T.linha}`, fontSize: 12.5, background: T.bg }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                  <input value={l.polo} onChange={e => atualizarLinha(l.key, "polo", e.target.value)} placeholder="Polo do cliente"
+                    style={{ padding: "9px 12px", borderRadius: 9, border: `1px solid ${T.linha}`, fontSize: 12.5, background: T.bg }} />
+                  <input value={l.parteContraria} onChange={e => atualizarLinha(l.key, "parteContraria", e.target.value)} placeholder="Parte contrária"
+                    style={{ padding: "9px 12px", borderRadius: 9, border: `1px solid ${T.linha}`, fontSize: 12.5, background: T.bg }} />
+                  <input type="date" value={l.dataDistribuicao} onChange={e => atualizarLinha(l.key, "dataDistribuicao", e.target.value)}
+                    style={{ padding: "9px 12px", borderRadius: 9, border: `1px solid ${T.linha}`, fontSize: 12.5, background: T.bg }} />
+                </div>
+              </div>
+            ))}
+            <button onClick={adicionarLinha} className="press" style={{ padding: "9px 14px", borderRadius: 9, border: `1.5px dashed ${T.linha}`, background: "transparent", fontSize: 12, fontWeight: 700, color: T.azul, cursor: "pointer" }}>
+              + Adicionar outro processo
+            </button>
+          </div>
+        </div>
+        <div style={{ padding: "16px 26px", borderTop: `1px solid ${T.linha}`, display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button onClick={onClose} className="press" style={{ padding: "10px 18px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.surface, fontSize: 13, fontWeight: 700, cursor: "pointer", color: T.chumbo }}>Cancelar</button>
+          <button disabled={validas.length === 0} onClick={() => onSalvar(cnpj, tribunal.trim() || "Não informado", validas)} className="press"
+            style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: validas.length ? T.azul : T.linha, color: "white", fontSize: 13, fontWeight: 700, cursor: validas.length ? "pointer" : "not-allowed" }}>
+            Consolidar no painel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DrawerHistorico({ buscas, clientesMonitorados, onClose }) {
+  const clienteDe = (cnpj) => clientesMonitorados.find(c => c.cnpj === cnpj);
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(17,29,48,.42)", display: "flex", justifyContent: "flex-end", zIndex: 100, animation: "veil .18s ease both" }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "min(520px,100%)", background: T.bg, height: "100%", overflowY: "auto", animation: "slideDrawer .28s cubic-bezier(.2,.7,.3,1) both", boxShadow: "-16px 0 48px rgba(17,29,48,.18)" }}>
+        <div style={{ background: T.surface, borderBottom: `1px solid ${T.linha}`, padding: "22px 26px", position: "sticky", top: 0, zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h2 className="bracket" style={{ fontSize: 17, fontWeight: 800 }}>Histórico de buscas</h2>
+            <div style={{ fontSize: 11.5, color: T.cinzaClaro, marginTop: 4 }}>Rastreabilidade de toda consulta feita, com ou sem novidade.</div>
+          </div>
+          <button onClick={onClose} className="press" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza }}><X size={16} /></button>
+        </div>
+        <div style={{ padding: "18px 26px" }}>
+          {buscas.length === 0 ? (
+            <Vazio titulo="Nenhuma busca registrada ainda" sub="Toda busca feita — com ou sem novidade — fica registrada aqui para rastreabilidade." />
+          ) : (
+            <div style={{ display: "grid", gap: 9 }}>
+              {buscas.map(b => {
+                const c = clienteDe(b.cnpj);
+                const corStatus = b.status === "erro" ? T.vermelho : b.status === "sem_resultado" ? T.cinza : b.processosNovos > 0 ? T.vermelho : T.verde;
+                const rotulo = b.status === "erro" ? "Erro na busca" : b.status === "sem_resultado" ? "Sem novidade" : b.processosNovos > 0 ? `${b.processosNovos} nova(s)` : "Sem novidade";
+                return (
+                  <div key={b.id} className="card" style={{ padding: "12px 14px", borderLeft: `3px solid ${corStatus}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3, gap: 8 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700 }}>{c ? (c.apelido || c.razaoSocial || formatarCnpj(c.cnpj)) : formatarCnpj(b.cnpj)}</span>
+                      <Badge texto={rotulo} cor={corStatus} />
+                    </div>
+                    <div className="num" style={{ fontSize: 11, color: T.cinza }}>{b.tribunal} · {b.processosEncontrados} processo(s) na busca · {dataFormatada(b.executadaEm)}</div>
+                    {b.mensagem && <div style={{ fontSize: 11, color: T.cinzaClaro, marginTop: 3 }}>{b.mensagem}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
