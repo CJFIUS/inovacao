@@ -4,9 +4,13 @@ import {
   FolderOpen, BarChart3, Settings, Search, Plus, Copy, Check, Star,
   Heart, MessageCircle, ChevronRight, X, ArrowRight, Link2,
   FileText, Video, Presentation, ExternalLink, TrendingUp, Sparkles,
-  Command, Clock, Users, Zap, LogOut, ShieldCheck
+  Command, Clock, Users, Zap, LogOut, ShieldCheck, Calculator,
+  AlertTriangle, CheckCircle2, Download
 } from "lucide-react";
 import { supabase } from "../src/supabaseClient.js";
+import { UNIDADES_GESTORAS_GRU_JT, CLIENTES_CNPJ, buscarUnidadeGestora, LINKS_EMISSAO } from "../src/guias/dadosReferencia.js";
+import { calcularCustas, conferirValores, PARAMETROS_CUSTAS } from "../src/guias/custasTrabalhistas.js";
+import { gerarDossiePdf } from "../src/guias/gerarDossiePdf.js";
 
 /* ══════════════════════════════════════════════════════════════
    CJ INOVA · Design System v2
@@ -54,6 +58,9 @@ const NAV = [
   { grupo: "Acervo de IA", itens: [
     { id: "prompts", nome: "Biblioteca de Prompts", icone: Sparkles },
     { id: "gpts", nome: "GPTs & Skills", icone: Bot },
+  ]},
+  { grupo: "Automações em produção", itens: [
+    { id: "guias", nome: "Guias Trabalhistas", icone: Calculator },
   ]},
   { grupo: "Conhecimento", itens: [
     { id: "treinamentos", nome: "Treinamentos", icone: GraduationCap },
@@ -288,6 +295,7 @@ function HubAutenticado({ sessao }) {
             {tela === "projetos" && <TelaProjetos {...props} />}
             {tela === "prompts" && <TelaPrompts {...props} />}
             {tela === "gpts" && <TelaGPTs {...props} />}
+            {tela === "guias" && <TelaGuiasTrabalhistas {...props} />}
             {tela === "treinamentos" && <TelaTreinamentos />}
             {tela === "docs" && <TelaDocs />}
             {tela === "comunidade" && <TelaComunidade {...props} />}
@@ -1041,6 +1049,197 @@ function TelaProjetos({ projetos }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ GUIAS TRABALHISTAS (GRU-JT) ══════════════════
+   MVP do agente de elaboração e conferência de guias de pagamento
+   judiciais — ver docs/propostas/agente-guias-pagamento-judiciais.md.
+
+   Escopo desta primeira fatia: custas processuais na Justiça do
+   Trabalho (GRU-JT). O sistema calcula, confere contra o valor
+   informado do processo e SEMPRE exige validação humana antes de
+   liberar o dossiê para download — nunca decide sozinho em caso de
+   divergência. Este ambiente de execução não tem acesso à internet
+   para preencher o site oficial (gru.jt.jus.br) automaticamente, por
+   isso o resultado é um dossiê de conferência (PDF), não a guia
+   oficial — ela ainda é emitida no portal do tribunal, com os dados
+   já conferidos aqui. */
+function TelaGuiasTrabalhistas({ meuNome, notificar }) {
+  const [f, setF] = useState({
+    numeroProcesso: "", tribunal: "TRT2", partes: "", cliente: "", cnpj: "",
+    baseDeCalculo: "", valorEncontrado: "", origemValorEncontrado: "",
+  });
+  const [resultado, setResultado] = useState(null);
+  const [validadoPor, setValidadoPor] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const unidadeGestora = buscarUnidadeGestora(f.tribunal);
+
+  const aoEscolherCliente = (nomeCliente) => {
+    const c = CLIENTES_CNPJ.find(c => c.cliente === nomeCliente);
+    setF({ ...f, cliente: nomeCliente, cnpj: c ? c.cnpj : "" });
+  };
+
+  const calcular = () => {
+    const base = Number(String(f.baseDeCalculo).replace(",", "."));
+    if (!f.numeroProcesso.trim() || !base) {
+      notificar("Preencha ao menos o número do processo e a base de cálculo.");
+      return;
+    }
+    const calculo = calcularCustas(base);
+    const encontrado = f.valorEncontrado ? Number(String(f.valorEncontrado).replace(",", ".")) : null;
+    const conferencia = conferirValores({
+      valorEncontrado: encontrado,
+      valorCalculado: calculo.valor,
+      origemValorEncontrado: f.origemValorEncontrado,
+    });
+    setResultado({ calculo, conferencia });
+    setValidadoPor("");
+  };
+
+  const aprovarEGerarPdf = async () => {
+    if (!validadoPor.trim()) { notificar("Informe quem está validando esta guia."); return; }
+    setSalvando(true);
+    const dossie = {
+      numeroProcesso: f.numeroProcesso, tribunal: unidadeGestora?.nome || f.tribunal,
+      partes: f.partes, cliente: f.cliente, cnpj: f.cnpj, unidadeGestora,
+      calculo: resultado.calculo, conferencia: resultado.conferencia,
+      validadoPor, status: "Aprovada", dataValidacao: new Date().toLocaleDateString("pt-BR"),
+    };
+    try {
+      await supabase.from("guias_trabalhistas").insert({
+        numero_processo: f.numeroProcesso, tribunal: f.tribunal, cliente: f.cliente, cnpj: f.cnpj,
+        base_de_calculo: resultado.calculo.baseDeCalculo, valor_calculado: resultado.calculo.valor,
+        valor_encontrado: resultado.conferencia.valorEncontrado, origem_valor_encontrado: f.origemValorEncontrado,
+        valor_a_usar: resultado.conferencia.valorAUsar, status_conferencia: resultado.conferencia.status,
+        nivel_confianca: resultado.conferencia.nivelConfianca, divergencia_detalhe: resultado.conferencia.possiveisMotivos ? resultado.conferencia : null,
+        validado_por: validadoPor, status_validacao: "Aprovada", data_validacao: new Date().toISOString(),
+        registrado_por: meuNome,
+      });
+    } catch (e) { /* auditoria é best-effort — não bloqueia a geração do PDF */ }
+    gerarDossiePdf(dossie);
+    setSalvando(false);
+    notificar("Dossiê gerado — confira os dados no PDF antes de emitir a guia oficial.");
+  };
+
+  const corConfianca = { alta: T.verde, média: T.amarelo, media: T.amarelo, baixa: T.vermelho };
+
+  return (
+    <div>
+      <Cabecalho eyebrow="Automações em produção" titulo="Guias Trabalhistas — GRU custas (MVP)"
+        sub="Calcula e confere o valor de custas processuais (CLT art. 789) antes de gerar o dossiê de conferência. A guia oficial continua sendo emitida no portal do tribunal — este agente elimina o cálculo manual e aponta divergências, mas nunca emite sozinho." />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div className="card" style={{ padding: "18px 20px", display: "grid", gap: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 800 }}>1. Dados do processo</div>
+          <div>
+            <Rotulo>Nº do processo</Rotulo>
+            <input value={f.numeroProcesso} onChange={e => setF({ ...f, numeroProcesso: e.target.value })} placeholder="0000000-00.0000.5.00.0000"
+              style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <Rotulo>Tribunal</Rotulo>
+              <select value={f.tribunal} onChange={e => setF({ ...f, tribunal: e.target.value })}
+                style={{ width: "100%", padding: "10.5px 12px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13 }}>
+                {UNIDADES_GESTORAS_GRU_JT.map(u => <option key={u.tribunal} value={u.tribunal}>{u.tribunal}</option>)}
+              </select>
+            </div>
+            <div>
+              <Rotulo>Cliente (pagador)</Rotulo>
+              <select value={f.cliente} onChange={e => aoEscolherCliente(e.target.value)}
+                style={{ width: "100%", padding: "10.5px 12px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13 }}>
+                <option value="">Outro / digitar CNPJ</option>
+                {CLIENTES_CNPJ.map(c => <option key={c.cliente} value={c.cliente}>{c.cliente}</option>)}
+              </select>
+            </div>
+          </div>
+          {unidadeGestora && (
+            <div style={{ fontSize: 11.5, color: T.cinza, background: T.linhaSoft, borderRadius: 9, padding: "8px 11px" }}>
+              Unidade Gestora: <strong className="num">{unidadeGestora.codigo}</strong> — {unidadeGestora.nome}
+            </div>
+          )}
+          <div>
+            <Rotulo>Partes</Rotulo>
+            <input value={f.partes} onChange={e => setF({ ...f, partes: e.target.value })} placeholder="Reclamante x Reclamada"
+              style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+          </div>
+
+          <div style={{ fontSize: 13, fontWeight: 800, marginTop: 6 }}>2. Valores</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <Rotulo>Base de cálculo (R$)</Rotulo>
+              <input value={f.baseDeCalculo} onChange={e => setF({ ...f, baseDeCalculo: e.target.value })} placeholder="Valor da causa/condenação"
+                style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+            </div>
+            <div>
+              <Rotulo>Valor encontrado no processo (opcional)</Rotulo>
+              <input value={f.valorEncontrado} onChange={e => setF({ ...f, valorEncontrado: e.target.value })} placeholder="Se já houver um valor apurado"
+                style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+            </div>
+          </div>
+          <div>
+            <Rotulo>Origem do valor encontrado</Rotulo>
+            <input value={f.origemValorEncontrado} onChange={e => setF({ ...f, origemValorEncontrado: e.target.value })} placeholder="Ex: sentença, cálculo do escritório, guia anterior"
+              style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+          </div>
+
+          <button onClick={calcular} className="press" style={{ marginTop: 6, padding: "11px 18px", borderRadius: 11, border: "none", background: T.azul, color: "white", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Calculator size={15} /> Calcular e conferir
+          </button>
+          <div style={{ fontSize: 10.5, color: T.cinzaClaro, lineHeight: 1.5 }}>
+            Parâmetro atual: {(PARAMETROS_CUSTAS.percentual * 100).toFixed(0)}% sobre a base de cálculo, mínimo de R$ {PARAMETROS_CUSTAS.valorMinimo.toFixed(2)} ({PARAMETROS_CUSTAS.fonteNormativa}).
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: "18px 20px" }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 14 }}>3. Conferência e validação</div>
+          {!resultado ? (
+            <div style={{ fontSize: 12.5, color: T.cinzaClaro, padding: "30px 10px", textAlign: "center" }}>
+              Preencha os dados e clique em "Calcular e conferir".
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 13px", borderRadius: 10, background: (corConfianca[resultado.conferencia.nivelConfianca] || T.cinza) + "14" }}>
+                {resultado.conferencia.status === "divergente" ? <AlertTriangle size={16} color={T.vermelho} /> : <CheckCircle2 size={16} color={T.verde} />}
+                <span style={{ fontSize: 12.5 }}>{resultado.conferencia.mensagem}</span>
+              </div>
+
+              <table style={{ width: "100%", fontSize: 12.5, borderCollapse: "collapse" }}>
+                <tbody>
+                  <tr><td style={{ padding: "5px 0", color: T.cinza }}>Valor calculado</td><td className="num" style={{ textAlign: "right", fontWeight: 700 }}>R$ {resultado.calculo.valor.toFixed(2)}</td></tr>
+                  <tr><td style={{ padding: "5px 0", color: T.cinza }}>Valor encontrado no processo</td><td className="num" style={{ textAlign: "right" }}>{resultado.conferencia.valorEncontrado != null ? `R$ ${resultado.conferencia.valorEncontrado.toFixed(2)}` : "Não informado"}</td></tr>
+                  <tr><td style={{ padding: "5px 0", color: T.cinza }}>Valor a constar na guia</td><td className="num" style={{ textAlign: "right", fontWeight: 700, color: resultado.conferencia.valorAUsar == null ? T.vermelho : T.chumbo }}>{resultado.conferencia.valorAUsar != null ? `R$ ${resultado.conferencia.valorAUsar.toFixed(2)}` : "PENDENTE"}</td></tr>
+                  <tr><td style={{ padding: "5px 0", color: T.cinza }}>Nível de confiança</td><td style={{ textAlign: "right" }}><Badge texto={resultado.conferencia.nivelConfianca} cor={corConfianca[resultado.conferencia.nivelConfianca] || T.cinza} /></td></tr>
+                </tbody>
+              </table>
+
+              {resultado.conferencia.possiveisMotivos && (
+                <div style={{ fontSize: 11.5, color: T.cinza, background: T.linhaSoft, borderRadius: 9, padding: "10px 12px" }}>
+                  <strong>Possíveis motivos:</strong>
+                  <ul style={{ margin: "4px 0 0 16px" }}>{resultado.conferencia.possiveisMotivos.map((m, i) => <li key={i}>{m}</li>)}</ul>
+                </div>
+              )}
+
+              <div style={{ borderTop: `1px solid ${T.linhaSoft}`, paddingTop: 12, marginTop: 4 }}>
+                <Rotulo>Validado por (obrigatório para gerar o dossiê)</Rotulo>
+                <input value={validadoPor} onChange={e => setValidadoPor(e.target.value)} placeholder={meuNome || "Seu nome"}
+                  style={{ width: "100%", padding: "10.5px 14px", borderRadius: 11, border: `1px solid ${T.linha}`, fontSize: 13, marginBottom: 10 }} />
+                <button onClick={aprovarEGerarPdf} disabled={salvando} className="press"
+                  style={{ width: "100%", padding: "11px 18px", borderRadius: 11, border: "none", background: T.verde, color: "white", fontSize: 13.5, fontWeight: 700, cursor: salvando ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <Download size={15} /> Aprovar e baixar dossiê (PDF)
+                </button>
+                <div style={{ fontSize: 10.5, color: T.cinzaClaro, marginTop: 8, lineHeight: 1.5 }}>
+                  O PDF é um dossiê de conferência, não a guia oficial. Emita a guia em{" "}
+                  <a href={LINKS_EMISSAO.gru_custas_jt} target="_blank" rel="noreferrer" style={{ color: T.azul }}>gru.jt.jus.br</a> usando os dados já conferidos.
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
