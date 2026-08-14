@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Calendar, Info, Send, CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "../supabaseClient.js";
-import { calcularPrazo, formatarData, nomeDiaSemana } from "./prazos.js";
+import { calcularPrazo, chaveData, formatarData, nomeDiaSemana } from "./prazos.js";
 
 const T = {
   azul: "#009edb", azulEscuro: "#004561", navy: "#21305a", chumbo: "#111d30",
@@ -65,6 +65,7 @@ export default function CalculadoraPrazos() {
   const [whatsapp, setWhatsapp] = useState("");
   const [salvandoContato, setSalvandoContato] = useState(false);
   const [contatoSalvo, setContatoSalvo] = useState(false);
+  const [erroContato, setErroContato] = useState(null);
 
   const diasRestantes = useMemo(() => {
     if (!resultado) return null;
@@ -97,8 +98,9 @@ export default function CalculadoraPrazos() {
     if (!resultado) return;
     if (!email && !whatsapp) return;
     setSalvandoContato(true);
+    setErroContato(null);
     try {
-      await supabase.from("calculadora_prazos_contatos").insert({
+      const { error } = await supabase.from("calculadora_prazos_contatos").insert({
         nome: nome || null,
         email: email || null,
         whatsapp: whatsapp || null,
@@ -108,11 +110,13 @@ export default function CalculadoraPrazos() {
         quantidade_dias: Number(quantidadeDias),
         considerar_recesso: considerarRecesso,
         considerar_forenses: considerarForenses,
-        data_final: resultado.dataFinal.toISOString().slice(0, 10),
+        data_final: chaveData(resultado.dataFinal),
       });
+      if (error) throw error;
       setContatoSalvo(true);
     } catch (err) {
       console.error("Falha ao salvar contato da calculadora:", err);
+      setErroContato("Não foi possível salvar seu contato agora. Tente novamente em instantes.");
     } finally {
       setSalvandoContato(false);
     }
@@ -228,9 +232,12 @@ export default function CalculadoraPrazos() {
               {contatoSalvo ? (
                 <div style={{ color: T.verde, fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><CheckCircle2 size={15} /> Contato salvo, obrigado!</div>
               ) : (
-                <button type="submit" disabled={salvandoContato || (!email && !whatsapp)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.linhaSoft, color: T.chumbo, fontSize: 12.5, fontWeight: 700, cursor: salvandoContato ? "default" : "pointer", opacity: salvandoContato ? 0.6 : 1 }}>
-                  <Send size={14} /> {salvandoContato ? "Salvando…" : "Salvar contato"}
-                </button>
+                <>
+                  <button type="submit" disabled={salvandoContato || (!email && !whatsapp)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.linhaSoft, color: T.chumbo, fontSize: 12.5, fontWeight: 700, cursor: salvandoContato ? "default" : "pointer", opacity: salvandoContato ? 0.6 : 1 }}>
+                    <Send size={14} /> {salvandoContato ? "Salvando…" : "Salvar contato"}
+                  </button>
+                  {erroContato && <div style={{ color: T.vermelho, fontSize: 12, fontWeight: 600, marginTop: 8 }}>{erroContato}</div>}
+                </>
               )}
             </form>
           </div>
