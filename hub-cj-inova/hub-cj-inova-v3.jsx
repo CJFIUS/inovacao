@@ -1067,6 +1067,16 @@ function TelaProjetos({ projetos }) {
    isso o resultado é um dossiê de conferência (PDF), não a guia
    oficial — ela ainda é emitida no portal do tribunal, com os dados
    já conferidos aqui. */
+/* Converte "15.000,00" ou "15000,00" ou "15000.00" para número JS.
+   Regra: se houver vírgula, ela é o separador decimal e qualquer ponto
+   antes dela é separador de milhar (padrão brasileiro). */
+function parseValorBR(texto) {
+  const s = String(texto).trim();
+  if (!s) return NaN;
+  const semMilhar = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
+  return Number(semMilhar);
+}
+
 function TelaGuiasTrabalhistas({ meuNome, notificar }) {
   const [f, setF] = useState({
     numeroProcesso: "", tribunal: "TRT2", partes: "", cliente: "", cnpj: "",
@@ -1084,13 +1094,13 @@ function TelaGuiasTrabalhistas({ meuNome, notificar }) {
   };
 
   const calcular = () => {
-    const base = Number(String(f.baseDeCalculo).replace(",", "."));
+    const base = parseValorBR(f.baseDeCalculo);
     if (!f.numeroProcesso.trim() || !base) {
       notificar("Preencha ao menos o número do processo e a base de cálculo.");
       return;
     }
     const calculo = calcularCustas(base);
-    const encontrado = f.valorEncontrado ? Number(String(f.valorEncontrado).replace(",", ".")) : null;
+    const encontrado = f.valorEncontrado ? parseValorBR(f.valorEncontrado) : null;
     const conferencia = conferirValores({
       valorEncontrado: encontrado,
       valorCalculado: calculo.valor,
