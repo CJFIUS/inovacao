@@ -69,9 +69,6 @@ const NAV = [
 /* ══════════════════ APP (portão de autenticação) ══════════════════ */
 export default function HubCJInova() {
   const [sessao, setSessao] = useState(undefined); // undefined = carregando · null = deslogado
-  const [perfil, setPerfil] = useState(null);
-  const [erroPerfil, setErroPerfil] = useState(null);
-  const [tentativa, setTentativa] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session));
@@ -79,34 +76,10 @@ export default function HubCJInova() {
     return () => assinatura.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (!sessao) { setPerfil(null); setErroPerfil(null); return; }
-    let vivo = true;
-    setErroPerfil(null);
-    supabase.from("profiles").select("*").eq("id", sessao.user.id).single()
-      .then(({ data, error }) => {
-        if (!vivo) return;
-        if (error) { setErroPerfil(error.message); return; }
-        setPerfil(data);
-      })
-      .catch((e) => { if (vivo) setErroPerfil(String(e?.message || e)); });
-    return () => { vivo = false; };
-  }, [sessao, tentativa]);
-
   if (sessao === undefined) return <TelaCarregando />;
   if (sessao === null) return <TelaLogin />;
-  if (erroPerfil) {
-    return (
-      <TelaErro
-        mensagem={erroPerfil}
-        onTentarDeNovo={() => setTentativa(t => t + 1)}
-        onSair={() => supabase.auth.signOut()}
-      />
-    );
-  }
-  if (!perfil) return <TelaCarregando />;
 
-  return <HubAutenticado sessao={sessao} perfil={perfil} />;
+  return <HubAutenticado sessao={sessao} />;
 }
 
 function TelaCarregando() {
@@ -114,22 +87,6 @@ function TelaCarregando() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", gap: 14, alignItems: "center", justifyContent: "center", background: T.bg, color: T.cinza, fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", fontSize: 13 }}>
       <LogoFIUS size={30} cor={T.azul} />
       <div>Carregando…</div>
-    </div>
-  );
-}
-
-function TelaErro({ mensagem, onTentarDeNovo, onSair }) {
-  return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg, fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif" }}>
-      <div className="card" style={{ width: "min(420px, 92vw)", padding: "28px 26px", textAlign: "center" }}>
-        <LogoFIUS size={28} cor={T.vermelho} />
-        <h1 style={{ fontSize: 16, fontWeight: 800, marginTop: 14, marginBottom: 8 }}>Não deu para carregar seu perfil</h1>
-        <p style={{ fontSize: 12.5, color: T.cinza, lineHeight: 1.55, marginBottom: 18 }}>{mensagem}</p>
-        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-          <button onClick={onSair} className="press" style={{ padding: "10px 16px", borderRadius: 10, border: `1px solid ${T.linha}`, background: T.surface, fontSize: 13, fontWeight: 700, cursor: "pointer", color: T.chumbo }}>Sair</button>
-          <button onClick={onTentarDeNovo} className="press" style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: T.azul, color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Tentar de novo</button>
-        </div>
-      </div>
     </div>
   );
 }
@@ -196,7 +153,7 @@ function TelaLogin() {
 }
 
 /* ══════════════════ APP AUTENTICADO ══════════════════ */
-function HubAutenticado({ sessao, perfil }) {
+function HubAutenticado({ sessao }) {
   const [tela, setTela] = useState("home");
   const [dores, setDores] = useState([]);
   const [ideias, setIdeias] = useState([]);
@@ -313,7 +270,7 @@ function HubAutenticado({ sessao, perfil }) {
   const props = {
     dores, ideias, projetos, prompts, agentes, posts, publicarPost, favoritos, toggleFav,
     copiado, copiarPrompt, curtidasMinhas, toggleLike, ideiasDe, projetosDe,
-    setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar, podeEditar, ehAdmin, perfil,
+    setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar, podeEditar, ehAdmin,
     meuNome,
   };
 
