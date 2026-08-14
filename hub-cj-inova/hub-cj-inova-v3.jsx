@@ -4,7 +4,7 @@ import {
   FolderOpen, BarChart3, Settings, Search, Plus, Copy, Check, Star,
   Heart, MessageCircle, ChevronRight, X, ArrowRight, Link2,
   FileText, Video, Presentation, ExternalLink, TrendingUp, Sparkles,
-  Command, Clock, Users, Zap, LogOut, ShieldCheck
+  Command, Clock, Users, Zap, LogOut, ShieldCheck, Calendar
 } from "lucide-react";
 import { supabase } from "../src/supabaseClient.js";
 
@@ -62,6 +62,9 @@ const NAV = [
     { id: "comunidade", nome: "Comunidade", icone: MessageSquareText },
     { id: "indicadores", nome: "Indicadores", icone: BarChart3 },
     { id: "admin", nome: "Administração", icone: Settings },
+  ]},
+  { grupo: "Ferramentas", itens: [
+    { id: "calculadora-prazos", nome: "Calculadora de Prazos", icone: Calendar, href: "./calculadora.html" },
   ]},
 ];
 
@@ -407,6 +410,16 @@ function Sidebar({ tela, setTela, onSair }) {
             <div style={{ fontSize: 10, fontWeight: 700, color: T.cinzaClaro, letterSpacing: ".1em", textTransform: "uppercase", padding: "8px 12px 5px" }}>{g.grupo}</div>
             {g.itens.map(m => {
               const Ic = m.icone; const ativo = tela === m.id;
+              if (m.href) {
+                return (
+                  <a key={m.id} href={m.href} target="_blank" rel="noopener noreferrer" className="nav-btn press"
+                    style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 12px", border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 500, textAlign: "left", background: "transparent", color: T.cinza, marginBottom: 1, textDecoration: "none", boxSizing: "border-box" }}>
+                    <Ic size={17} color={T.cinzaClaro} strokeWidth={2} />
+                    {m.nome}
+                    <ExternalLink size={12} color={T.cinzaClaro} style={{ marginLeft: "auto" }} />
+                  </a>
+                );
+              }
               return (
                 <button key={m.id} onClick={() => setTela(m.id)} className={`nav-btn press ${ativo ? "nav-ativo" : ""}`}
                   style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 12px", border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 500, textAlign: "left", background: "transparent", color: T.cinza, marginBottom: 1 }}>
