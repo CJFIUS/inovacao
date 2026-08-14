@@ -23,7 +23,7 @@ const T = {
 };
 
 /* ───────── DADOS: dores, ideias, projetos, agentes e posts vêm do Supabase (ver supabase/schema.sql) ───────── */
-const dorFromDb = (d) => ({ id: d.id, titulo: d.titulo, area: d.area, intensidade: d.intensidade, frequencia: d.frequencia, alcance: d.alcance, status: d.status });
+const dorFromDb = (d) => ({ id: d.id, titulo: d.titulo, area: d.area, intensidade: d.intensidade, frequencia: d.frequencia, alcance: d.alcance, status: d.status, registradoPor: d.registrado_por || "" });
 const ideiaFromDb = (i) => ({ id: i.id, dorId: i.dor_id, nucleo: i.nucleo, titulo: i.titulo, autores: i.autores, prioridade: i.prioridade, notas: i.notas });
 const projetoFromDb = (p) => ({ id: p.id, dorId: p.dor_id, nucleo: p.nucleo, titulo: p.titulo, equipe: p.equipe, prioridade: p.prioridade, previsao: p.previsao, fase: p.fase });
 const agenteFromDb = (a) => ({ id: a.id, nome: a.nome, nucleo: a.nucleo, objetivo: a.objetivo, criadoPor: a.criado_por, equipe: a.equipe, link: a.link || "" });
@@ -138,15 +138,21 @@ function TelaErro({ mensagem, onTentarDeNovo, onSair }) {
 const EMAIL_EQUIPE = "equipe@cjinova.local";
 
 function TelaLogin() {
+  const [nome, setNome] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [mensagem, setMensagem] = useState(null);
 
   const enviar = async (e) => {
     e.preventDefault();
+    if (!nome) { setMensagem("Escolha quem você é."); return; }
     setMensagem(null); setCarregando(true);
     const { error } = await supabase.auth.signInWithPassword({ email: EMAIL_EQUIPE, password: senha });
-    if (error) setMensagem(error.message.includes("Invalid login") ? "Senha incorreta." : error.message);
+    if (error) {
+      setMensagem(error.message.includes("Invalid login") ? "Senha incorreta." : error.message);
+    } else {
+      try { localStorage.setItem("cjinova_nome", nome); } catch {}
+    }
     setCarregando(false);
   };
 
@@ -166,8 +172,16 @@ function TelaLogin() {
         </p>
         <form onSubmit={enviar} style={{ display: "grid", gap: 12 }}>
           <div>
+            <Rotulo>Quem é você?</Rotulo>
+            <select autoFocus required value={nome} onChange={e => setNome(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13, background: T.surface }}>
+              <option value="" disabled>Selecione seu nome</option>
+              {NOMES_EQUIPE.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          <div>
             <Rotulo>Senha da equipe</Rotulo>
-            <input autoFocus required type="password" value={senha} onChange={e => setSenha(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
+            <input required type="password" value={senha} onChange={e => setSenha(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${T.linha}`, fontSize: 13 }} />
           </div>
           {mensagem && <div style={{ fontSize: 12, lineHeight: 1.5, color: T.vermelho }}>{mensagem}</div>}
           <button disabled={carregando} type="submit" className="press"
@@ -202,6 +216,11 @@ function HubAutenticado({ sessao, perfil }) {
   // Acesso é por senha única de equipe — todo mundo que entra tem o mesmo nível de acesso.
   const podeEditar = true;
   const ehAdmin = true;
+  const [meuNome, setMeuNome] = useState(() => { try { return localStorage.getItem("cjinova_nome") || ""; } catch { return ""; } });
+  const escolherNome = (n) => {
+    setMeuNome(n);
+    try { localStorage.setItem("cjinova_nome", n); } catch {}
+  };
 
   useEffect(() => {
     let vivo = true;
@@ -246,12 +265,13 @@ function HubAutenticado({ sessao, perfil }) {
   const toggleFav = (id) => setFavoritos(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
 
   const registrarDor = async (nova) => {
+    const registradoPor = meuNome || null;
     const { error } = await supabase.from("dores").insert({
       id: nova.id, titulo: nova.titulo, area: nova.area, intensidade: nova.intensidade,
-      frequencia: nova.frequencia, alcance: nova.alcance, status: nova.status,
+      frequencia: nova.frequencia, alcance: nova.alcance, status: nova.status, registrado_por: registradoPor,
     });
     if (error) { notificar("Não deu para registrar: " + error.message); return; }
-    setDores(d => [...d, nova]);
+    setDores(d => [...d, { ...nova, registradoPor }]);
     setModalDor(false);
     notificar(`${nova.id} registrada no radar`);
   };
@@ -264,7 +284,8 @@ function HubAutenticado({ sessao, perfil }) {
     notificar("Link do agente atualizado para todo o time");
   };
 
-  const publicarPost = async (texto, autorNome) => {
+  const publicarPost = async (texto) => {
+    const autorNome = meuNome || "Alguém da equipe";
     const { data, error } = await supabase.from("posts").insert({ autor_id: sessao.user.id, autor_nome: autorNome, texto }).select("*").single();
     if (error) { notificar("Não deu para publicar: " + error.message); return; }
     setPosts(p => [postFromDb(data), ...p]);
@@ -292,12 +313,13 @@ function HubAutenticado({ sessao, perfil }) {
     dores, ideias, projetos, prompts, agentes, posts, publicarPost, favoritos, toggleFav,
     copiado, copiarPrompt, curtidasMinhas, toggleLike, ideiasDe, projetosDe,
     setDorSelecionada, setAgenteSelecionado, setModalDor, setTela, notificar, podeEditar, ehAdmin, perfil,
+    meuNome,
   };
 
   return (
     <div style={{ fontFamily: "'Rubik','Segoe UI',system-ui,sans-serif", background: T.bg, minHeight: "100vh", display: "flex", color: T.chumbo }}>
       <EstilosGlobais />
-      <Sidebar tela={tela} setTela={setTela} onSair={sair} />
+      <Sidebar tela={tela} setTela={setTela} onSair={sair} meuNome={meuNome} escolherNome={escolherNome} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Topbar abrirPaleta={() => setPaleta(true)} setModalDor={setModalDor} />
         <main key={tela} className="pagina" style={{ flex: 1, padding: "26px 34px 48px", maxWidth: 1180, width: "100%", margin: "0 auto" }}>
@@ -389,7 +411,8 @@ function EstilosGlobais() {
 }
 
 /* ══════════════════ ESTRUTURA ══════════════════ */
-function Sidebar({ tela, setTela, onSair }) {
+function Sidebar({ tela, setTela, onSair, meuNome, escolherNome }) {
+  const [editando, setEditando] = useState(false);
   return (
     <aside style={{ width: 248, background: T.surface, borderRight: `1px solid ${T.linha}`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
       <div style={{ padding: "20px 22px 16px", display: "flex", alignItems: "center", gap: 11 }}>
@@ -418,17 +441,30 @@ function Sidebar({ tela, setTela, onSair }) {
           </div>
         ))}
       </nav>
-      <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.linha}`, display: "flex", alignItems: "center", gap: 11 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.navy, color: "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <LogoFIUS size={16} cor="white" />
-        </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600 }}>Equipe CJ INOVA</div>
-          <div style={{ fontSize: 10.5, color: T.cinzaClaro }}>Acesso compartilhado</div>
-        </div>
-        <button onClick={onSair} className="press" title="Sair" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza, flexShrink: 0 }}>
-          <LogOut size={15} />
-        </button>
+      <div style={{ padding: "14px 20px", borderTop: `1px solid ${T.linha}` }}>
+        {editando ? (
+          <div style={{ display: "grid", gap: 6 }}>
+            <Rotulo>Quem é você?</Rotulo>
+            <select autoFocus value={meuNome} onChange={e => { escolherNome(e.target.value); setEditando(false); }} onBlur={() => setEditando(false)}
+              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.linha}`, fontSize: 12.5, background: T.surface }}>
+              <option value="" disabled>Selecione seu nome</option>
+              {NOMES_EQUIPE.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: T.navy, color: "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 13, fontWeight: 700 }}>
+              {meuNome ? meuNome[0] : <LogoFIUS size={16} cor="white" />}
+            </div>
+            <button onClick={() => setEditando(true)} className="press" title="Trocar quem é você" style={{ minWidth: 0, flex: 1, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: T.chumbo }}>{meuNome || "Escolher seu nome"}</div>
+              <div style={{ fontSize: 10.5, color: T.cinzaClaro }}>Acesso compartilhado</div>
+            </button>
+            <button onClick={onSair} className="press" title="Sair" style={{ background: T.linhaSoft, border: "none", borderRadius: 8, padding: 7, cursor: "pointer", color: T.cinza, flexShrink: 0 }}>
+              <LogOut size={15} />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -572,7 +608,7 @@ function Paleta({ fechar, setTela, dores, ideias, projetos, prompts }) {
 }
 
 /* ══════════════════ HOME ══════════════════ */
-function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, ideiasDe }) {
+function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, ideiasDe, meuNome }) {
   const semIdeia = dores.filter(d => ideiasDe(d.id).length === 0).length;
   const ideiasVinculadas = ideias.filter(i => i.dorId).length;
   const projetosVinculados = projetos.filter(p => p.dorId).length;
@@ -581,7 +617,7 @@ function TelaHome({ dores, ideias, projetos, prompts, agentes, posts, setTela, i
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{saudacao}, equipe 👋</h1>
+        <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: "-.02em" }}>{saudacao}{meuNome ? `, ${meuNome}` : ", equipe"} 👋</h1>
         <p style={{ fontSize: 13.5, color: T.cinza, marginTop: 4 }}>
           {semIdeia > 0
             ? <>Há <strong style={{ color: T.vermelho }}>{semIdeia} {semIdeia === 1 ? "dor" : "dores"} sem ideia</strong> no radar esperando resposta. Vamos juntos?</>
@@ -853,6 +889,7 @@ function DrawerDor({ dor, ideias, projetos, onClose }) {
           <div style={{ display: "flex", gap: 14, marginTop: 12, fontSize: 12, color: T.cinza, flexWrap: "wrap" }}>
             <span>📍 {dor.area}</span><span>👥 {dor.alcance}</span>
             <span className="num">Intensidade {dor.intensidade}/5 · Frequência {dor.frequencia}/5</span>
+            {dor.registradoPor && <span>✍️ registrada por {dor.registradoPor}</span>}
           </div>
         </div>
 
@@ -1321,15 +1358,12 @@ function tempoRelativo(iso) {
   return `há ${d} ${d === 1 ? "dia" : "dias"}`;
 }
 
-function TelaComunidade({ posts, publicarPost, curtidasMinhas, toggleLike }) {
-  const [meuNome, setMeuNome] = useState(() => { try { return localStorage.getItem("cjinova_nome") || ""; } catch { return ""; } });
+function TelaComunidade({ posts, publicarPost, curtidasMinhas, toggleLike, meuNome }) {
   const [rascunho, setRascunho] = useState("");
   const enviar = () => {
     const texto = rascunho.trim();
-    const nome = meuNome.trim();
-    if (!texto || !nome) return;
-    try { localStorage.setItem("cjinova_nome", nome); } catch {}
-    publicarPost(texto, nome);
+    if (!texto) return;
+    publicarPost(texto);
     setRascunho("");
   };
   return (
@@ -1338,15 +1372,12 @@ function TelaComunidade({ posts, publicarPost, curtidasMinhas, toggleLike }) {
         sub="Dicas, boas práticas e novidades do time. Vamos juntos? 💙" />
       <div style={{ maxWidth: 640 }}>
         <div className="card" style={{ padding: "14px 18px", marginBottom: 16, display: "grid", gap: 10 }}>
-          <input value={meuNome} onChange={e => setMeuNome(e.target.value)}
-            placeholder="Seu nome"
-            style={{ width: 160, fontSize: 12.5, color: T.chumbo, background: T.bg, border: `1px solid ${T.linha}`, borderRadius: 10, padding: "7px 12px" }} />
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <input value={rascunho} onChange={e => setRascunho(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") enviar(); }}
-              placeholder="Compartilhe uma dica, automação ou novidade…"
+              placeholder={`Compartilhe algo como ${meuNome || "você"}…`}
               style={{ flex: 1, fontSize: 13, color: T.chumbo, background: T.bg, border: `1px solid ${T.linha}`, borderRadius: 20, padding: "10px 16px", transition: "border-color .15s, box-shadow .15s" }} />
-            <button onClick={enviar} disabled={!rascunho.trim() || !meuNome.trim()} className="press" style={{ background: rascunho.trim() && meuNome.trim() ? T.azul : T.linha, color: "white", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12.5, fontWeight: 700, cursor: rascunho.trim() && meuNome.trim() ? "pointer" : "not-allowed" }}>Publicar</button>
+            <button onClick={enviar} disabled={!rascunho.trim()} className="press" style={{ background: rascunho.trim() ? T.azul : T.linha, color: "white", border: "none", borderRadius: 9, padding: "9px 16px", fontSize: 12.5, fontWeight: 700, cursor: rascunho.trim() ? "pointer" : "not-allowed" }}>Publicar</button>
           </div>
         </div>
         {posts.length === 0 ? (
@@ -1447,8 +1478,10 @@ function TelaAdmin() {
           </div>
         </div>
         <div>
-          <SubTitulo>Trilha de auditoria</SubTitulo>
-          <Vazio titulo="Sem trilha de auditoria ainda" sub="Como o acesso é compartilhado (não há login por pessoa), não é possível registrar quem fez cada ação." />
+          <SubTitulo>Identificação por pessoa</SubTitulo>
+          <div className="card" style={{ padding: 18, fontSize: 12.5, color: T.cinza, lineHeight: 1.6 }}>
+            <p>O acesso ao Hub é compartilhado (uma senha só), mas cada pessoa escolhe seu nome ao entrar. Dores registradas e posts da Comunidade ficam marcados com esse nome — é uma identificação informal (não é login individual), então trate como referência, não como prova de autoria.</p>
+          </div>
         </div>
       </div>
     </div>

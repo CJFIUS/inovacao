@@ -31,3 +31,8 @@ create policy "agentes: authenticated can update" on public.agentes for update u
 -- 2) Posts da Comunidade agora carregam o nome digitado por quem publica
 --    (não existe mais um login por pessoa para puxar o nome automaticamente).
 alter table public.posts add column if not exists autor_nome text not null default 'Alguém da equipe';
+
+-- 3) Cada dor registrada agora guarda o nome de quem entrou no Hub e a
+--    registrou — é uma identificação informal (escolhida na tela de login),
+--    não um login individual de verdade.
+alter table public.dores add column if not exists registrado_por text;
