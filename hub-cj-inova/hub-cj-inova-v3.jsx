@@ -39,6 +39,7 @@ const SEED_DOCS = [];
 const ATIVIDADES = [];
 
 const AREAS = ["Todas", "Publicações", "Apoio", "Geral", "Relatório", "Protocolo", "Cadastro"];
+const NOMES_EQUIPE = ["Isabella", "Bruna", "Clara", "Lilian", "Beatris", "Rebeca", "Júlia", "Jackeline", "Eve", "Daniela", "Raíssa"];
 const scoreDor = (d) => d.intensidade * d.frequencia;
 const heatColor = (s) => s >= 20 ? T.vermelho : s >= 12 ? T.laranja : T.verde;
 const corAutor = { Isa: T.azul, Bruna: T.roxo, Clara: T.verde, Lilian: T.laranja, Isabella: T.azul };
