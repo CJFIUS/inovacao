@@ -138,7 +138,7 @@ function TelaErro({ mensagem, onTentarDeNovo, onSair }) {
 
 /* Login único da equipe: um e-mail fixo por trás das cenas, a "senha da equipe"
    cadastrada no Supabase (Authentication > Users) é a única credencial visível. */
-const EMAIL_EQUIPE = "equipe@cjinova.local";
+const EMAIL_EQUIPE = "cj.ia@fius.com.br";
 
 function TelaLogin() {
   const [senha, setSenha] = useState("");
